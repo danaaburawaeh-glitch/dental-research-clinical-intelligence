@@ -6,6 +6,16 @@
 ويحدّد ما هو ناقص، ويفحص العلامات الحمراء، ويضع الإنذار، ويرتّب مراحل العلاج، ويسند ما يقوله
 بأدبيات حقيقية مسترجَعة. وإن لم تكفِ البيانات، يتوقف بدل أن يخمّن.
 
+## التنصيب (مرة واحدة)
+
+```bash
+claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-intelligence
+claude plugin install dana-dental-research@dana-dental
+```
+
+للتحقق: `claude plugin list` (يُتوقَّع v1.0.1 مُفعَّلاً) و`claude plugin details dana-dental-research`
+(يُتوقَّع ٩ مهارات).
+
 ## ابدأ خلال 5 دقائق
 
 1. افتحي Terminal واكتبي `claude` ثم Enter.

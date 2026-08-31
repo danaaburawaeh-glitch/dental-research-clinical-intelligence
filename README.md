@@ -113,15 +113,30 @@ material flow into marketing without specific written publication consent.
 
 ## Installation
 
-See **[INSTALLATION.md](INSTALLATION.md)** for step-by-step instructions written for a
-non-developer, macOS first.
-
-Short version, once Claude Code is installed:
+Two commands, once Claude Code is installed. No GitHub account needed.
 
 ```bash
-claude plugin marketplace add /path/to/DANA-v1.0.0-DISTRIBUTION
+claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-intelligence
 claude plugin install dana-dental-research@dana-dental
 ```
+
+Verify it worked:
+
+```bash
+claude plugin list                          # shows v1.0.1, enabled
+claude plugin details dana-dental-research  # lists all 9 skills
+```
+
+Then start Claude Code and try the orientation skill:
+
+```bash
+claude
+```
+```
+/dana-dental-research:start
+```
+
+Full step-by-step instructions, written for a non-developer: **[INSTALLATION.md](INSTALLATION.md)**.
 
 ## Quick start
 

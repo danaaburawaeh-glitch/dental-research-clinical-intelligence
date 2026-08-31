@@ -2,9 +2,9 @@
 
 Written for a first-time user on **macOS**. Notes for Windows and Linux are at the end.
 
-Every command below was verified against the Claude Code CLI shipped on this machine
-(`claude plugin --help`, `claude plugin marketplace --help`, `claude plugin install --help`).
-Nothing here is invented.
+Every command below was verified against the Claude Code CLI (`claude plugin --help`,
+`claude plugin marketplace --help`, `claude plugin install --help`) and by running a full
+end-to-end installation test. Nothing here is invented.
 
 ---
 
@@ -22,28 +22,28 @@ Nothing here is invented.
    ClinicalTrials.gov live. Without a connection the assistant still works, but it will tell you
    retrieval was unavailable rather than answering from memory.
 
-4. **This repository on your computer.** Download or clone it, and note the folder path — for
-   example `/Users/yourname/Downloads/DANA-v1.0.0-DISTRIBUTION`.
+That is all. You do **not** need to download anything by hand, and you do **not** need a GitHub
+account.
 
 ---
 
-## B. Install from the bundled marketplace (recommended)
+## B. Install
 
-This repository *is* a Claude Code marketplace. Two commands.
+Two commands.
 
-**Step 1 — register the marketplace.** Use the full path to the repository folder:
+**Step 1 — register the marketplace:**
 
 ```bash
-claude plugin marketplace add /Users/yourname/Downloads/DANA-v1.0.0-DISTRIBUTION
+claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-intelligence
 ```
 
-Confirm it registered:
+Claude Code fetches the repository itself and validates it. Confirm it registered:
 
 ```bash
 claude plugin marketplace list
 ```
 
-You should see `dana-dental` listed.
+You should see `dana-dental` listed, with its source shown as GitHub.
 
 **Step 2 — install the plugin:**
 
@@ -54,61 +54,23 @@ claude plugin install dana-dental-research@dana-dental
 The `@dana-dental` suffix names the marketplace, which avoids ambiguity if you have others
 registered.
 
-> **Tip:** drag the folder from Finder into Terminal after typing `claude plugin marketplace add `
-> — Terminal fills in the path for you.
-
-### If you are hosting this on GitHub
-
-Once the repository is pushed, the same command accepts a GitHub repository instead of a local
-path:
-
-```bash
-claude plugin marketplace add owner/repository-name
-```
-
-Then install exactly as in Step 2.
-
 ---
 
-## C. Direct / local loading
-
-If you prefer not to use the marketplace, the packaged artifact is in `releases/`:
-
-- `dana-dental-research-clinical-intelligence-v1.0.0.plugin`
-- `dana-dental-research-clinical-intelligence-v1.0.0.zip`
-
-Both are the same ZIP archive under different extensions. The plugin source is also present,
-unpacked, at `plugin/dana-dental-research/`.
-
-**The supported installation route is the marketplace flow in section B**, pointed at this
-repository folder — that folder already contains the unpacked plugin, so no manual extraction is
-needed. If you want to keep the plugin somewhere else, move `plugin/dana-dental-research/`
-wherever you like and register *that* location's parent repository instead.
-
-Verify the download first if you obtained the archive separately:
-
-```bash
-cd releases
-shasum -a 256 -c SHA256SUMS.txt
-```
-
----
-
-## D. Verify the installation
+## C. Verify the installation
 
 ```bash
 claude plugin list
 ```
 
-`dana-dental-research` should appear as installed and enabled.
+`dana-dental-research` should appear as **version 1.0.1**, scope `user`, status **enabled**.
 
-Then start Claude Code and check the skills are available:
+Then inspect what was installed:
 
 ```bash
-claude
+claude plugin details dana-dental-research
 ```
 
-Type `/` and you should see these nine skills:
+This lists the component inventory. You should see **9 skills**:
 
 | Skill | Purpose |
 |---|---|
@@ -122,23 +84,28 @@ Type `/` and you should see these nine skills:
 | `evidence-research` | Literature retrieval and appraisal |
 | `quality-control` | Pre-release checking of an output |
 
-You can also inspect what was installed:
+The same command also reports the projected token cost — roughly **850 tokens always-on** per
+session, with each skill costing more only when it actually fires.
+
+---
+
+## D. Start Claude Code
 
 ```bash
-claude plugin details dana-dental-research
+claude
 ```
 
 ---
 
-## E. First test prompt — no patient data
+## E. First test — no patient data
 
-Paste this into Claude Code:
+Inside Claude Code, run the orientation skill:
 
 ```
 /dana-dental-research:start
 ```
 
-Then:
+Then try a real question:
 
 ```
 What does the current evidence say about the survival of porcelain laminate veneers?
@@ -151,19 +118,35 @@ sources at all, something is wrong — see Troubleshooting.
 
 ---
 
-## F. Troubleshooting
+## F. Updating
+
+```bash
+claude plugin marketplace update dana-dental
+claude plugin install dana-dental-research@dana-dental
+```
+
+Check which version you have with `claude plugin list`.
+
+---
+
+## G. Troubleshooting
 
 **`claude: command not found`**
 Claude Code is not installed or not on your PATH. Install it, then close and reopen Terminal.
 
-**Plugin not detected after installing**
-Run `claude plugin marketplace list` — if `dana-dental` is missing, the path in Step 1 was wrong.
-Re-run with the full absolute path. Then `claude plugin list` to confirm the plugin. Restart Claude
-Code; skills load at session start.
+**Marketplace not found, or the repository cannot be fetched**
+Check your internet connection and re-run the `marketplace add` command exactly as written,
+including the `owner/repository` form. Confirm with `claude plugin marketplace list`.
 
-**"Wrong directory" / path errors**
-Use the **absolute** path (starting with `/Users/`), not a relative one. Drag the folder into
-Terminal to get it exactly right. A path containing spaces must be quoted.
+**Plugin not detected after installing**
+Run `claude plugin marketplace list` — if `dana-dental` is missing, Step 1 did not complete. Then
+`claude plugin list` to confirm the plugin. Restart Claude Code; skills load at session start.
+
+**Skills do not appear**
+Confirm with `claude plugin list` that the plugin is *enabled*, not merely installed. If disabled:
+```bash
+claude plugin enable dana-dental-research
+```
 
 **No internet connection**
 The assistant will report that retrieval was unavailable. **This is not a finding.** A failed or
@@ -183,16 +166,70 @@ VERIFICATION** — which is the correct answer, not an error. Verify Saudi statu
 before purchase or clinical use. To connect it later, see
 `plugin/dana-dental-research/docs/SFDA_CONNECTOR_VALIDATION.md`.
 
-**Skills do not appear**
-Confirm with `claude plugin list` that the plugin is *enabled*, not merely installed. If disabled:
+**Uninstalling**
 ```bash
-claude plugin enable dana-dental-research
+claude plugin uninstall dana-dental-research@dana-dental
+claude plugin marketplace remove dana-dental
 ```
 
 ---
 
 ## Windows and Linux
 
-The same commands work. Only the path format differs — use your platform's absolute path, for
-example `C:\Users\yourname\Downloads\DANA-v1.0.0-DISTRIBUTION` on Windows. On Windows use
-`certutil -hashfile <file> SHA256` instead of `shasum` to check the checksum.
+The two installation commands are identical on every platform. Only Troubleshooting paths differ.
+On Windows use `certutil -hashfile <file> SHA256` in place of `shasum` if you verify a download.
+
+---
+
+# Developer / Local Testing Only
+
+**Ordinary users should not need this section.** It covers working from a local checkout, which is
+useful only when developing the plugin or testing an unreleased change.
+
+### Registering a local checkout as a marketplace
+
+Point `marketplace add` at a directory instead of a repository:
+
+```bash
+claude plugin marketplace add /absolute/path/to/dental-research-clinical-intelligence
+claude plugin install dana-dental-research@dana-dental
+```
+
+Use the **absolute** path (starting with `/Users/` on macOS). Dragging the folder from Finder into
+Terminal fills it in exactly. A path containing spaces must be quoted.
+
+Note that this registers your working copy, so edits take effect on the next
+`claude plugin marketplace update dana-dental`. That is convenient for development and a bad idea
+for production use — the installed plugin then depends on a directory you might move or delete.
+
+### Installing from the packaged artifact
+
+`releases/` contains:
+
+- `dana-dental-research-clinical-intelligence-v1.0.1.plugin`
+- `dana-dental-research-clinical-intelligence-v1.0.1.zip`
+
+Both are the same archive under different extensions. Verify a download before using it:
+
+```bash
+cd releases
+shasum -a 256 -c SHA256SUMS.txt
+```
+
+The repository already contains the plugin unpacked at `plugin/dana-dental-research/`, so the
+marketplace flow above needs no manual extraction.
+
+### Private or internal deployments
+
+If you host this repository **privately** — an internal clinic fork, or a staged rollout before
+public release — each user must be authenticated to GitHub and granted access to the repository.
+The simplest route:
+
+```bash
+gh auth login     # GitHub.com → HTTPS → Login with a web browser
+```
+
+Then the standard two commands in section B work unchanged.
+
+**This is not required for the public release.** A public repository installs with no GitHub
+account and no authentication at all.

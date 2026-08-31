@@ -6,6 +6,13 @@ A dental clinical decision-support assistant that runs inside Claude Code. You g
 organises the data, tells you what is missing, checks for emergencies, assigns prognosis, sequences
 treatment, and backs claims with real retrieved literature. It stops rather than guessing.
 
+## Install (once)
+
+```bash
+claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-intelligence
+claude plugin install dana-dental-research@dana-dental
+```
+
 ## Start within 5 minutes
 
 1. Open Terminal, type `claude`, press Enter.
