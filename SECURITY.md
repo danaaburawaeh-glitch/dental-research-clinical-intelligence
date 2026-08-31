@@ -53,4 +53,4 @@ Contact the maintainer directly. Please include what you observed and how to rep
 ## What this package contains
 
 No credentials. No API keys or tokens. No patient data. No private filesystem paths. Verified by
-scan before release; see `DISTRIBUTION_VALIDATION_v1.0.0.md`.
+scan before release; see `HISTORICAL_DISTRIBUTION_VALIDATION_v1.0.0.md`.

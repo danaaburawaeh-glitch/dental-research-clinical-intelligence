@@ -1,5 +1,9 @@
 # Dental Research & Clinical Intelligence by Dr. Dana — v1.0.0
 
+> **HISTORICAL RECORD**
+> This document relates to the original v1.0.0 production/distribution validation.
+> The current public release is **v1.0.1**.
+
 ## Production release
 
 First validated production release. An evidence-grounded dental research and clinical
