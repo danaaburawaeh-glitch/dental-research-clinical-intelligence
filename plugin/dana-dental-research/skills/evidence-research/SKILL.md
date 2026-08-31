@@ -41,7 +41,8 @@ a small amount of new connective text making an implicit step explicit.
    (`~~clinical-guidelines`, `~~systematic-reviews`, `~~literature`, `~~clinical-trials`,
    `~~journal-access`, `~~manufacturer-ifu`, `~~regulatory-saudi`). For `~~literature` and
    `~~systematic-reviews`, this means invoking `connectors/pubmed/client.py` (via the Bash tool,
-   `${CLAUDE_PLUGIN_ROOT}/connectors/pubmed/client.py search|fetch|search-systematic-reviews|
+   `"${CLAUDE_PLUGIN_ROOT:-$(ls -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/dana-dental-research/*/connectors/pubmed/client.py 2>/dev/null | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V -k1,1 | tail -1 | cut -f2- | sed 's:/connectors/pubmed/client\.py$::')}"/connectors/pubmed/client.py
+   search|fetch|search-systematic-reviews|
    search-clinical-studies`); for `~~journal-access`'s citation-verification role, this means
    `connectors/crossref/client.py lookup-doi|search-bibliographic`. If a selected connector is
    `NOT CONNECTED` (check connector-capability-map.md's actual status — do not assume connected

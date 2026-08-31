@@ -1,16 +1,18 @@
-2a6e0dbcf8c17cfc8f69fbef9ba8aa70751d05a9cfc6671a4a8a014077c0f29b  dana-dental-research-clinical-intelligence-v1.0.1.plugin
-2a6e0dbcf8c17cfc8f69fbef9ba8aa70751d05a9cfc6671a4a8a014077c0f29b  dana-dental-research-clinical-intelligence-v1.0.1.zip
+5d1554b857e8fe93265911c4d5e543ec8470630205222c2725ec15a551077294  dana-dental-research-clinical-intelligence-v1.0.2.plugin
+5d1554b857e8fe93265911c4d5e543ec8470630205222c2725ec15a551077294  dana-dental-research-clinical-intelligence-v1.0.2.zip
 
-# Dental Research & Clinical Intelligence by Dr. Dana — v1.0.1
+# Dental Research & Clinical Intelligence by Dr. Dana — v1.0.2
 # Verify:  shasum -a 256 -c SHA256SUMS.txt
 # Windows: certutil -hashfile <file> SHA256
 #
-# v1.0.1 is a privacy-only patch of v1.0.0: the maintainer's personal email address was
-# replaced with a GitHub noreply address in manifest metadata and redacted from three
-# historical documents. No clinical logic, evidence logic, connector code, connector state,
-# Clinical Protocol content, safety rule or scientific content was changed.
+# v1.0.2 is a connector-detection and path-resolution patch of v1.0.1. It fixes plugin path
+# resolution for evidence-research when CLAUDE_PLUGIN_ROOT is unset, and corrects connector
+# capability reporting in /start (PubMed was incorrectly reported as disconnected). No clinical
+# logic, clinical safety rule, prompt, treatment-planning rule, evidence hierarchy, governance
+# rule, identity policy or connector code was changed. No connector was added, removed or
+# re-scoped. Cochrane, Embase and Scopus remain NOT IMPLEMENTED; SFDA remains NOT CONNECTED —
+# AUTH REQUIRED. All seven regression suites pass unchanged: 330/330 assertions.
 #
 # The .plugin and .zip are the same archive under two extensions and share a checksum.
 #
-# v1.0.0 artifacts are preserved outside this repository and are not distributed, because
-# their manifest still contains the personal address.
+# v1.0.1 artifacts and checksums are unchanged and remain published at their own release tag.

@@ -1,6 +1,6 @@
 # Installation — English
 
-**Dental Research & Clinical Intelligence by Dr. Dana** · v1.0.1
+**Dental Research & Clinical Intelligence by Dr. Dana** · v1.0.2
 
 Three routes, by experience level. Most people want **A**.
 
@@ -18,7 +18,7 @@ claude plugin install dana-dental-research@dana-dental
 Verify:
 
 ```bash
-claude plugin list                          # expect: version 1.0.1, enabled
+claude plugin list                          # expect: version 1.0.2, enabled
 claude plugin details dana-dental-research  # expect: Skills (9)
 ```
 

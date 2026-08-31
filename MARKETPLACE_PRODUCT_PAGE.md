@@ -159,7 +159,7 @@ absence from PubMed; clinical depth outside the two in-scope disciplines is deli
 
 ## VERSION
 
-**Version 1.0.1 — Production Release**
+**Version 1.0.2 — Production Release**
 
 ## AUTHOR
 
@@ -205,4 +205,4 @@ https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence
 
 ## RELEASE URL
 
-https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.1
+https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.2

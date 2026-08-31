@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.0.2 — connector detection & path resolution patch
+
+Fixed:
+
+- PubMed connector incorrectly reported as disconnected in `/start`. The capability check could be
+  satisfied by looking for MCP tools; these connectors are plugin-local Python CLIs and the bundled
+  `.mcp.json` is empty by design, so the check reported every research source as unavailable
+  regardless of actual health.
+- `evidence-research` path resolution when `CLAUDE_PLUGIN_ROOT` is unset. The documented invocation
+  failed with `[Errno 2]` on a clean install; the variable remains the primary path, with a
+  version-aware fallback to the most-recent valid installed plugin directory.
+- Capability reporting now separates PubMed, systematic-review retrieval, Crossref,
+  ClinicalTrials.gov, Cochrane, Embase, Scopus and SFDA accurately, and distinguishes
+  `NOT IMPLEMENTED` from `NOT CONNECTED` from a runtime retrieval failure.
+
+No changes to clinical logic, clinical safety, prompts, treatment planning, evidence hierarchy,
+governance or identity policy. No connector added, removed or re-scoped. Cochrane, Embase and
+Scopus remain **not implemented**; SFDA remains **not connected — auth required**. All seven
+regression suites pass unchanged: 330/330 assertions.
+
+Full notes: [`docs/RELEASE_NOTES_v1.0.2.md`](docs/RELEASE_NOTES_v1.0.2.md)
+
 ## v1.0.1 — privacy patch
 
 The maintainer's personal email address removed from all tracked repository content before public

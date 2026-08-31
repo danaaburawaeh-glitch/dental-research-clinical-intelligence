@@ -15,6 +15,19 @@ Choose one or more: QUICK, TRIAGE, CASE, AUDIT, MATERIAL, RX, PATIENT, DOC, EVID
 ## 2. Capability check
 Identify which relevant connector categories are available. Never imply access to a source or tool that is not connected.
 
+Read `references/connector-capability-map.md` FIRST and report its status column. Do not
+infer status any other way. In particular:
+
+- These connectors are **plugin-local Python CLIs invoked via the Bash tool**, not MCP
+  servers. The bundled `.mcp.json` is empty by design, so the absence of `mcp__*` tools is
+  never evidence that a connector is unavailable.
+- Report each source **separately**. Never merge sources of differing status into one row.
+- Sources with no connector in this plugin (Cochrane/CENTRAL, Embase, Scopus) are reported
+  `NOT IMPLEMENTED` — distinct from `NOT CONNECTED` and from a runtime retrieval failure.
+- A live call that fails on a `CONNECTED` connector is a retrieval failure
+  (`TIMEOUT`/`UPSTREAM_ERROR`), never a downgrade to `NOT CONNECTED` — per the runtime
+  availability rule in the capability map.
+
 ## 3. Clinical role gate
 Before clinically consequential output, establish the requester's role if not already known. Use the most restrictive reasonable role when unclear.
 

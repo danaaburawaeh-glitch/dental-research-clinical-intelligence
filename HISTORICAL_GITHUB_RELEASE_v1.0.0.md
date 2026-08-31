@@ -2,7 +2,7 @@
 
 > **HISTORICAL RECORD**
 > This document relates to the original v1.0.0 production/distribution validation.
-> The current public release is **v1.0.1**.
+> The current public release is **v1.0.2**.
 
 ## Production release
 

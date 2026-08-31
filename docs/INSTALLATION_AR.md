@@ -1,6 +1,6 @@
 # التنصيب — العربية
 
-**Dental Research & Clinical Intelligence by Dr. Dana** · الإصدار 1.0.1
+**Dental Research & Clinical Intelligence by Dr. Dana** · الإصدار 1.0.2
 
 ثلاثة طرق بحسب مستوى الخبرة. أغلب المستخدمين يحتاجون **الطريقة أ**.
 
@@ -18,7 +18,7 @@ claude plugin install dana-dental-research@dana-dental
 للتحقق:
 
 ```bash
-claude plugin list                          # المتوقَّع: الإصدار 1.0.1، مُفعَّل
+claude plugin list                          # المتوقَّع: الإصدار 1.0.2، مُفعَّل
 claude plugin details dana-dental-research  # المتوقَّع: Skills (9)
 ```
 

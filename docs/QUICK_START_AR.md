@@ -13,7 +13,7 @@ claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-inte
 claude plugin install dana-dental-research@dana-dental
 ```
 
-للتحقق: `claude plugin list` (يُتوقَّع v1.0.1 مُفعَّلاً) و`claude plugin details dana-dental-research`
+للتحقق: `claude plugin list` (يُتوقَّع v1.0.2 مُفعَّلاً) و`claude plugin details dana-dental-research`
 (يُتوقَّع ٩ مهارات).
 
 ## ابدأ خلال 5 دقائق

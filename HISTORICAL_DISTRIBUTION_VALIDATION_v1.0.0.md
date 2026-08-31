@@ -2,7 +2,7 @@
 
 > **HISTORICAL RECORD**
 > This document relates to the original v1.0.0 production/distribution validation.
-> The current public release is **v1.0.1**.
+> The current public release is **v1.0.2**.
 
 Packaging and distribution audit for **Dental Research & Clinical Intelligence by Dr. Dana**,
 plugin identifier `dana-dental-research`, version 1.0.0.

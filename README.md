@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <b>Version 1.0.1 &middot; Production Release</b><br>
+  <b>Version 1.0.2 &middot; Production Release</b><br>
   Plugin identifier <code>dana-dental-research</code> &middot; Designed by Dr. Dana Abu Rawaeh
 </p>
 
@@ -172,7 +172,7 @@ claude plugin install dana-dental-research@dana-dental
 Verify it worked:
 
 ```bash
-claude plugin list                          # shows v1.0.1, enabled
+claude plugin list                          # shows v1.0.2, enabled
 claude plugin details dana-dental-research  # lists all 9 skills
 ```
 
@@ -254,7 +254,7 @@ Nothing in it constitutes regulatory authorisation for any product, material or 
 
 ## Version and updates
 
-Current version **1.0.1**. Update with:
+Current version **1.0.2**. Update with:
 
 ```bash
 claude plugin marketplace update dana-dental
@@ -278,14 +278,14 @@ When reporting a clinical-behaviour problem, **never include patient-identifying
 | [QUICK_START.md](QUICK_START.md) · [EN](docs/QUICK_START_EN.md) · [AR](docs/QUICK_START_AR.md) | Getting started in five minutes |
 | [User guide EN](docs/USER_GUIDE_EN.md) · [AR](docs/USER_GUIDE_AR.md) | How to work with it day to day |
 | [Capabilities & limitations EN](docs/CAPABILITIES_AND_LIMITATIONS_EN.md) · [AR](docs/CAPABILITIES_AND_LIMITATIONS_AR.md) | Exactly what it does and does not do |
-| [Release notes v1.0.1](docs/RELEASE_NOTES_v1.0.1.md) | What changed |
+| [Release notes v1.0.2](docs/RELEASE_NOTES_v1.0.2.md) | What changed |
 | [SECURITY.md](SECURITY.md) | Privacy and credential rules |
 | [DISCLAIMER.md](DISCLAIMER.md) · [TERMS_OF_USE.md](TERMS_OF_USE.md) | Clinical and legal position |
 | [VERSIONING.md](VERSIONING.md) · [CONTRIBUTING.md](CONTRIBUTING.md) | For maintainers |
 
 ## Release
 
-**[v1.0.1 — Production Release](https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.1)**
+**[v1.0.2 — Production Release](https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.2)**
 · 0 P0 blockers · 0 P1 blockers · 330 regression assertions passing.
 
 Checksums are published with the release; verify a download with
