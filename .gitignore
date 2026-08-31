@@ -1,0 +1,29 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# macOS / editors
+.DS_Store
+.AppleDouble
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local scratch
+scratch/
+tmp/
+*.log
+test-output/

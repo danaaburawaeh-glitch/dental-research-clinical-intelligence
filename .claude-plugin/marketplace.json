@@ -1,0 +1,33 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dana-dental",
+  "description": "Marketplace for Dental Research & Clinical Intelligence by Dr. Dana — an evidence-grounded dental research and clinical decision-support plugin for Claude Code.",
+  "owner": {
+    "name": "Dr. Dana Abu Rawaeh",
+    "email": "318165261+danaaburawaeh-glitch@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "dana-dental-research",
+      "displayName": "Dental Research & Clinical Intelligence by Dr. Dana",
+      "description": "Evidence-grounded dental research and clinical decision-support system for Claude Code, designed for structured case analysis, prosthodontic and esthetic treatment planning, evidence retrieval, citation verification, clinical-trial research, safety gating, and Saudi-aware governance.",
+      "version": "1.0.1",
+      "author": {
+        "name": "Dr. Dana Abu Rawaeh",
+        "email": "318165261+danaaburawaeh-glitch@users.noreply.github.com"
+      },
+      "category": "healthcare",
+      "keywords": [
+        "dentistry",
+        "dental",
+        "research",
+        "clinical",
+        "prosthodontics",
+        "esthetic-dentistry",
+        "evidence-based-medicine",
+        "clinical-decision-support"
+      ],
+      "source": "./plugin/dana-dental-research"
+    }
+  ]
+}
