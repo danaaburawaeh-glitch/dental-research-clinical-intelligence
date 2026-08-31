@@ -1,9 +1,19 @@
 # Dental Research & Clinical Intelligence by Dr. Dana
 
-An evidence-grounded dental research and clinical decision-support plugin for Claude Code, with
-particular strength in esthetic and fixed prosthodontics.
+<p align="center">
+  <img src="assets/logo/dental-ai-icon-512.png" alt="Dental AI" width="220">
+</p>
 
-**Version 1.0.1** · Plugin identifier `dana-dental-research` · Designed by Dr. Dana Abu Rawaeh
+<p align="center">
+  <b>Evidence. Intelligence. Better Decisions.</b><br>
+  An evidence-grounded dental research and clinical decision-support plugin for Claude Code,
+  with particular strength in esthetic and fixed prosthodontics.
+</p>
+
+<p align="center">
+  <b>Version 1.0.1 &middot; Production Release</b><br>
+  Plugin identifier <code>dana-dental-research</code> &middot; Designed by Dr. Dana Abu Rawaeh
+</p>
 
 ---
 
@@ -32,6 +42,31 @@ not.
 - **It separates evidence from permission.** Strong research support does not make a product legal
   to use in Saudi Arabia; FDA and CE approval never substitute for Saudi status.
 
+## The gated workflow
+
+Every request runs through gates, and any gate can stop it:
+
+```
+Case / Question
+   → Data Sufficiency
+   → Red Flags
+   → Prognosis
+   → Treatment Sequencing
+   → Evidence Retrieval
+   → Citation Verification
+   → Retraction Safety
+   → Regulatory / Governance Check
+   → Quality Control
+   → Final Output
+```
+
+> **Evidence before confidence.**
+> **Diagnosis before treatment.**
+> **Biology before esthetics.**
+> **Function before irreversible intervention.**
+> **Preserve healthy tooth structure.**
+> **Uncertainty must be visible.**
+
 ## Who it is for
 
 Qualified dental professionals — consultants, specialists, general dentists — and supervised
@@ -55,6 +90,20 @@ risk factors, treatment sequencing.
 **Triage** — urgent symptoms, swelling, trauma, bleeding, with red-flag pre-emption.
 
 **Research support** — question selection, novelty and feasibility assessment.
+
+## The nine skills
+
+| Skill | What it does |
+|---|---|
+| `start` | Orients you and routes your question to the right workflow |
+| `clinical-governance` | Applies the safety, evidence, privacy and regulatory rules to any output |
+| `clinical-case` | Analyses a case through the full governed diagnostic sequence |
+| `triage` | Handles urgent symptoms — swelling, trauma, bleeding — before anything else |
+| `esthetic-prosthodontics` | Governs elective esthetic and fixed-prosthodontic planning |
+| `treatment-plan-audit` | Adversarially audits a treatment plan you already have |
+| `scientific-problem-selection` | Helps choose, refine and de-risk a research question |
+| `evidence-research` | Retrieves, verifies and appraises published evidence |
+| `quality-control` | Checks a consequential output before you rely on it |
 
 ## Clinical safety architecture
 
@@ -221,6 +270,31 @@ follow **[SECURITY.md](SECURITY.md)** instead of opening a public issue.
 
 When reporting a clinical-behaviour problem, **never include patient-identifying information.**
 
----
+## Documentation
+
+| Document | For |
+|---|---|
+| [INSTALLATION.md](INSTALLATION.md) | Step-by-step installation, all levels |
+| [QUICK_START.md](QUICK_START.md) · [EN](docs/QUICK_START_EN.md) · [AR](docs/QUICK_START_AR.md) | Getting started in five minutes |
+| [User guide EN](docs/USER_GUIDE_EN.md) · [AR](docs/USER_GUIDE_AR.md) | How to work with it day to day |
+| [Capabilities & limitations EN](docs/CAPABILITIES_AND_LIMITATIONS_EN.md) · [AR](docs/CAPABILITIES_AND_LIMITATIONS_AR.md) | Exactly what it does and does not do |
+| [Release notes v1.0.1](docs/RELEASE_NOTES_v1.0.1.md) | What changed |
+| [SECURITY.md](SECURITY.md) | Privacy and credential rules |
+| [DISCLAIMER.md](DISCLAIMER.md) · [TERMS_OF_USE.md](TERMS_OF_USE.md) | Clinical and legal position |
+| [VERSIONING.md](VERSIONING.md) · [CONTRIBUTING.md](CONTRIBUTING.md) | For maintainers |
+
+## Release
+
+**[v1.0.1 — Production Release](https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.1)**
+· 0 P0 blockers · 0 P1 blockers · 330 regression assertions passing.
+
+Checksums are published with the release; verify a download with
+`shasum -a 256 -c SHA256SUMS.txt`.
+
+## Creator
 
 Designed by Dr. Dana Abu Rawaeh
+
+*The designer's name identifies this product and its creator. It is never a clinical, scientific,
+regulatory or protocol authority for any claim the software makes — clinic-derived rules carry
+`(OPS)` or `(JUDG)`, and scientific claims cite the real source.*

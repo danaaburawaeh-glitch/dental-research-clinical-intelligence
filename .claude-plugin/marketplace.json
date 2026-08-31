@@ -27,7 +27,22 @@
         "evidence-based-medicine",
         "clinical-decision-support"
       ],
-      "source": "./plugin/dana-dental-research"
+      "source": "./plugin/dana-dental-research",
+      "homepage": "https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence",
+      "tags": [
+        "dentistry",
+        "dental",
+        "clinical",
+        "research",
+        "prosthodontics",
+        "esthetic-dentistry",
+        "evidence-based-dentistry",
+        "clinical-decision-support",
+        "pubmed",
+        "systematic-review",
+        "treatment-planning",
+        "dental-ai"
+      ]
     }
   ]
 }
