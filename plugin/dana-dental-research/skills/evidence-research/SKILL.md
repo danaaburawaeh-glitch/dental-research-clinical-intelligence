@@ -4,8 +4,29 @@ description: Frame dental evidence questions through PICO/PECO/PIRD/SPIDER, retr
 ---
 # Evidence Research
 
-Load clinical-governance, references/connector-capability-map.md and
-references/retrieval-transports.md (v1.1.0 — which transport reaches which source).
+Load clinical-governance, references/connector-capability-map.md,
+references/retrieval-transports.md (which transport reaches which source), and
+references/evidence-intelligence-architecture.md (v1.2 — the six-stage separation this workflow
+implements).
+
+**v1.2 — Evidence Intelligence Engine.** Six stages are now separate, and a result from one never
+substitutes for a result from another:
+
+```
+RETRIEVAL -> VERIFICATION -> APPRAISAL -> CERTAINTY -> SYNTHESIS -> CLINICAL APPLICABILITY
+```
+
+The rule the whole engine exists to enforce:
+
+> **A bibliographically VERIFIED paper is never, on that basis alone, strong evidence.**
+
+Verification is stage two of six. Study design, appraisal, certainty and directness are four
+further assessments, each of which can fail independently. The executable layer lives in
+`evidence/` and is invoked through the Bash tool the same way the connectors are:
+`citation_verification.py` · `study_design.py` · `appraisal.py` · `certainty.py` ·
+`sr_extraction.py` · `overlap.py` · `directness.py` · `numeric_gate.py` · `conflict.py` ·
+`rank.py` · `claim_link.py` · `search_builder.py` · `evidence_table.py` · `bottom_line.py` ·
+`output_modes.py` · `pipeline.py`.
 
 v1.1.0 note (2026-09-01): the **Dental AI Research Remote MCP** server
 (`dental-ai-research`, declared in the plugin's `.mcp.json`) is now a second retrieval transport
@@ -123,76 +144,126 @@ a small amount of new connective text making an implicit step explicit.
    at step 6 — the retraction gate and citation verification are separate, both-required checks,
    neither substitutes for the other.
 
-6. **Verify every citation.** references/citation-verification.md — v0.4 dual-source standard,
-   applied to `included` (and disclosed-unchecked) records from step 5: PubMed record + Crossref
-   cross-check (when a DOI is available) required for VERIFIED status; single-source retrieval
-   alone is now PARTIALLY VERIFIED at most. VERIFIED / PARTIALLY VERIFIED / UNVERIFIED (UNVER) for
-   every author/title/year/journal/DOI/PMID/sample size/follow-up/design/effect/CI/p-value/
-   conclusion. Never invent a missing bibliographic field. Never paraphrase a guideline
-   recommendation in a way that changes its strength. Never silently repair a PubMed/Crossref
-   field disagreement — report both values and flag UNVERIFIED. **(v1.1.0)** The remote MCP
-   `verify_citation` tool performs this same dual-source check and returns
-   `VERIFIED`/`PARTIALLY_VERIFIED`/`NOT_VERIFIED` with a per-field `metadata_match` and a
-   `source_provenance` block naming which sources were actually consulted; map its output onto the
-   three states above and carry the named disagreeing fields through verbatim. A `NOT_VERIFIED`
-   caused by a Crossref↔PubMed disagreement is a real finding, distinct from an upstream failure —
-   do not retry it on the other transport hoping for a cleaner answer.
+6. **Verify every citation — Citation Verification 2.0.**
+   references/citation-verification.md, `evidence/citation_verification.py`. Seven states across
+   two axes, both always reported:
 
-7. **Classify study design.** references/study-design-classification.md — name the actual design
-   (disambiguate RCT) for every `included` record reaching this point. Only records that survived
-   step 5's gate reach classification at all — a retracted article is never classified as usable
-   evidence, per the hard safety rule.
+   - **Bibliographic:** VERIFIED · VERIFIED_WITH_METADATA_DISCREPANCY · PARTIALLY_VERIFIED ·
+     NOT_VERIFIED
+   - **Publication integrity:** ACTIVE · RETRACTED · CORRECTED · EXPRESSION_OF_CONCERN · UNCHECKED
 
-8. **Tag DEL-7.** references/del7-evidence-hierarchy.md — assign the tag from the design named in
-   step 7, apply the laboratory and manufacturer firewalls, never let (LAB) or (IFU) cross into
-   clinical claims. A retracted article never receives a DEL-7 supporting-evidence tag, because it
-   never reaches this step.
+   Integrity dominates the headline state; the bibliographic reading is never discarded.
+   **A year-only disagreement, with DOI, title, authors and journal all matching, is
+   VERIFIED_WITH_METADATA_DISCREPANCY — not NOT_VERIFIED.** Report the exact discrepancy with both
+   values and both sources. Never silently resolve one. Seven components (DOI/PMID/title/author/
+   journal/year/retraction status) stay individually visible; no single verification score is
+   produced. **(v1.1.0)** The remote `verify_citation` tool performs the same dual-source check —
+   map its output onto these states and carry the named disagreeing fields through verbatim.
 
-9. **Appraise quality.** references/evidence-quality-appraisal.md — risk of bias, sample size,
-   follow-up, effect size + CI, and the rest, per source. Name a formal tool (RoB 2, ROBINS-I,
-   AMSTAR 2, QUADAS-2, GRADE) only when the source information actually supports applying it.
+7. **Classify study design.** references/study-design-classification.md,
+   `evidence/study_design.py`. Structured metadata first — PublicationType and MeSH, never free
+   text, for the load-bearing designs. Every classification carries provenance (REPORTED /
+   INFERRED-with-basis / UNKNOWN). "RCT" is derived only from the structured field, never from the
+   letters in a title. A registry record is classified **Clinical trial registry record** and
+   carries **REGISTRY ONLY — NOT EVIDENCE OF EFFICACY** permanently.
 
-10. **Assess directness.** references/evidence-directness.md — DEL-7 tier alone never implies
-    direct applicability; rate population/intervention/comparator/outcome/timeframe/setting match.
+8. **Tag DEL-7.** references/del7-evidence-hierarchy.md — assigned from the design named in step
+   7, via `study_design.del7_tag()`. A design with UNKNOWN provenance receives no
+   supporting-evidence tier. The laboratory and manufacturer firewalls hold.
 
-11. **Gate every number.** references/numeric-evidence-gate.md (bundled from clinical-governance)
-    — VERIFIED / TYPICAL RANGE-VERIFY / USER-SUPPLIED / CALCULATED for any consequential figure.
+9. **Detect duplication and overlap.** references/duplication-and-overlap.md,
+   `evidence/overlap.py`. Distinguish a duplicate record from the same study reported twice, an
+   updated review, and overlapping meta-analyses. Each cluster counts as **one** independent
+   study; nothing is deleted, and older evidence is retained where it materially changes
+   interpretation. A retrieval count is not an evidence count.
 
-12. **Handle absence and conflicts.** references/absence-of-evidence.md — distinguish
-    nothing-found, search-failed, weak/indirect, and genuine no-material-effect; never conflate
-    them. references/evidence-conflict-resolution.md — when two bodies of evidence disagree,
-    state what each shows, its DEL-7 tag, the likely explanation, what it means for the decision,
-    and what would settle it. Directness can outweigh a raw DEL-7 tier advantage — document the
-    reasoning, don't just rank tiers.
+10. **Appraise.** references/evidence-quality-appraisal.md, `evidence/appraisal.py`. Every field
+    carries REPORTED / INFERRED (basis mandatory) / UNKNOWN. **Never invent missing appraisal
+    data** — UNKNOWN is a complete answer and is what step 12 reads. Name a formal tool
+    (RoB 2, ROBINS-I, AMSTAR 2, QUADAS-2) only where it applies to the design and its required
+    domains were available; the function refuses otherwise.
 
-13. **Synthesise.** references/evidence-synthesis.md — work the nine-question algorithm, then
-    output the four separated buckets (DIRECT EVIDENCE / INDIRECT SUPPORTING EVIDENCE / CLINICAL
-    EXTRAPOLATION / UNKNOWN-UNRESOLVED) via templates/evidence-summary-template.md, plus a
-    separate contextual/caution note for anything step 5 routed to `flagged`. Never call one
-    study "the evidence." Never let a `flagged` notice record or expression-of-concern article
-    silently appear inside the DIRECT or INDIRECT buckets as if it were ordinary supporting
-    evidence.
+11. **Extract systematic-review detail.** references/systematic-review-intelligence.md,
+    `evidence/sr_extraction.py`. Where the full text was not retrieved — which is every record
+    this plugin fetches, since no connector supplies full text — unestablished fields are
+    **NOT AVAILABLE**, distinct from **NOT REPORTED**. Do not fabricate them, and do not parse
+    numbers out of abstract prose automatically.
 
-14. **State applicability.** references/clinical-applicability.md — population/setting/
-    directness/outcome match plus feasibility-locally and patient-fit. Rate HIGH / MODERATE / LOW
-    APPLICABILITY / CANNOT ASSESS.
+12. **Assess directness.** references/evidence-directness.md, `evidence/directness.py`. Six
+    dimensions — population, procedure, material, comparison, outcome, follow-up — each
+    HIGH/MODERATE/LOW/UNKNOWN, aggregating to DIRECT / PARTIALLY DIRECT / INDIRECT / UNKNOWN.
+    Laboratory, computational and registry records are **capped at INDIRECT**, and the cap is
+    reported.
 
-15. **Calibrate claim strength.** references/claim-strength-governor.md (bundled from
-    clinical-governance) — a risk factor never silently becomes a predicted outcome; a (JUDG) or
-    HYPOTHESIS item is never phrased as FACT or SUPPORTED ASSOCIATION.
+13. **Assess certainty.** references/certainty-of-evidence.md, `evidence/certainty.py`.
+    HIGH / MODERATE / LOW / VERY LOW / **NOT ASSESSABLE**. Conservative by construction: it never
+    upgrades, missing domains produce NOT ASSESSABLE rather than a default rating, and laboratory
+    and registry records are off the scale entirely. **Never call this GRADE.** An author-reported
+    GRADE rating is a separate, attributed channel — reported verbatim, never produced here.
 
-16. **Format output.** Choose the smallest sufficient mode — do not default to DEEP for a simple
-    question. See the Output modes table below.
+14. **Gate every number.** references/numeric-evidence-gate.md, `evidence/numeric_gate.py` —
+    VERIFIED / TYPICAL RANGE-VERIFY / USER-SUPPLIED / CALCULATED. **No survival %, failure %, risk
+    ratio, odds ratio, mean difference or confidence interval may appear in a Clinical Bottom Line
+    unless the source containing it was retrieved and verified this session.** Never reconstruct a
+    numerical value from memory.
 
-## Output modes (Phase 19 router)
+15. **Handle absence and conflicts.** references/absence-of-evidence.md — never conflate
+    nothing-found, search-failed, weak/indirect, and genuine no-effect.
+    references/evidence-conflict-resolution.md, `evidence/conflict.py` — where comparable sources
+    disagree, produce an **EVIDENCE CONFLICT**: both sources in full, the differences in
+    population, methods, follow-up, interventions and risk of bias, a candidate explanation, and
+    what would settle it. **Never average them.** Where one side is materially weaker, that is a
+    quality note, not a conflict.
 
-Choose the smallest sufficient mode — do not default to DEEP for a simple question.
+16. **Rank.** references/source-hierarchy-and-ranking.md, `evidence/rank.py`. DEL-7 tier,
+    certainty, directness — **never publication date**. Recency is a tie-break among equals only,
+    and is flagged when used. Directness costs an indirect source one tier position, and every
+    resulting inversion is reported with its reasoning.
 
-| Mode | Shape | Template |
+17. **Synthesise.** references/evidence-synthesis.md — the four separated buckets (DIRECT /
+    INDIRECT SUPPORTING / CLINICAL EXTRAPOLATION / UNKNOWN-UNRESOLVED), plus a separate
+    contextual note for anything step 5 routed to `flagged`. Excluded (retracted) records appear
+    only as a provenance note, never as a citation backing a claim.
+
+18. **Link every consequential claim.** references/claim-evidence-linking.md,
+    `evidence/claim_link.py`. Each claim carries **citation · verification state · study type ·
+    certainty · directness**, plus its limitations, at the claim itself — not in a bibliography.
+
+19. **State applicability.** references/clinical-applicability.md — population/setting/directness/
+    outcome match, feasibility locally, patient fit. HIGH / MODERATE / LOW / CANNOT ASSESS.
+    Separate from certainty, and separate again from whether the option may lawfully be used here.
+
+20. **Calibrate claim strength.** references/claim-strength-governor.md — a risk factor never
+    silently becomes a predicted outcome; a (JUDG) or HYPOTHESIS item is never phrased as FACT.
+
+21. **Close with the Clinical Bottom Line.** templates/clinical-bottom-line-template.md,
+    `evidence/bottom_line.py`. Seven sections, every one rendered even when empty. Sections 1 and 2
+    are gated by certainty and directness, not by citation status — a claim that does not meet the
+    bar is moved down, with the reason stated.
+
+22. **Format output.** Choose the smallest sufficient mode — see the Output modes table below.
+
+## Output modes (v1.2)
+
+Five modes. Choose the smallest sufficient one — do not default to FULL for a simple question.
+`evidence/output_modes.py` holds each mode's section contract and validates a produced output
+against it.
+
+| Mode | Shape | Required sections |
 |---|---|---|
-| **QUICK EVIDENCE** | Clinical bottom line + evidence level + uncertainty (only if material) | templates/clinical-bottom-line-template.md |
-| **STANDARD EVIDENCE** | Framed question + retrieved evidence + synthesis + applicability | templates/pico-template.md + templates/evidence-summary-template.md |
-| **DEEP EVIDENCE REVIEW** | Search methods + evidence table + appraisal + synthesis + gaps + clinical translation | templates/search-log-template.md + templates/evidence-table-template.md + templates/evidence-summary-template.md |
+| **QUICK EVIDENCE ANSWER** | One question, a short answer, and only the caveats that change what the reader does. ≤200 words | answer · certainty · directness · citation status |
+| **FULL EVIDENCE REVIEW** | Exposes its own working: the search actually run, the appraisal actually performed, and what could not be established | answer · search log · evidence table · appraisal · certainty · directness · synthesis buckets · conflicts · bottom line · limitations · applicability |
+| **SYSTEMATIC REVIEW SUMMARY** | One review read structurally — what it pooled, how, and what it found | answer · SR profile · certainty · directness · citation status · limitations |
+| **TREATMENT OPTION COMPARISON** | Options side by side, each with its own evidence and its own certainty | options · evidence table · certainty · directness · conflicts · bottom line · limitations · applicability |
+| **LECTURE / RESEARCH MODE** | Teaching or manuscript use: the evidence base, its gaps, and what is worth investigating | answer · search log · evidence table · synthesis buckets · **evidence gaps** · limitations |
+
+**A mode changes how much is shown. It never changes what is true.** Every gate runs in every
+mode — retraction, citation verification, numeric evidence, claim-evidence link, laboratory
+firewall, registry evidence. QUICK is shorter than FULL because it omits the working, not because
+it lowers a bar. That matters because QUICK is exactly where a system is tempted to relax: the
+caveat costs a line, the reader wants an answer, and one unqualified sentence is faster. So QUICK
+keeps certainty, directness and citation status mandatory, and makes only the evidence table
+optional.
 
 ## If retrieval is unavailable
 
@@ -200,6 +271,14 @@ Do not improvise citations. Return the ready-to-run search strategy from step 3'
 and mark any remembered items (UNVER) per citation-verification.md.
 
 ## Regression coverage
+
+**v1.2:** `evidence/tests/test_safety_nonnegotiable.py` (65 checks — the nine prohibitions of the
+v1.2 brief, plus retraction exclusion and stage separation),
+`evidence/tests/test_evidence_engine.py` (115 checks — the state table, classification precedence,
+aggregation rules, query construction and rendering), and `evidence/tests/test_benchmark.py`
+(54 checks — the 38-question validation set across ten dental domains, each trap type executed
+against the engine rather than merely described). All genuinely executed, no network.
+
 
 See tests/evidence-regression-tests.md for the 15+ evidence-reasoning scenarios this workflow
 must pass before any release is packaged, (v0.4 Phase A)

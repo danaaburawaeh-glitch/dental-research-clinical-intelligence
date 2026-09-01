@@ -1,94 +1,138 @@
 <!--
 REFERENCE-ID: citation-verification
-VERSION: 0.4.1
+VERSION: 1.2.0
 CANONICAL-OWNER: evidence-research (see /ARCHITECTURE_REFERENCE_MAP.md for the full owner/consumer table)
-LAST-SYNCHRONIZED: 2026-08-30
+LAST-SYNCHRONIZED: 2026-09-01
 This file is a bundled copy. Edit only at the canonical owner location and re-sync all bundles
-in the same change; do not hand-edit a consumer copy independently (see Step 3, canonical
-source policy).
-v0.4.1: added the retraction/correction check requirement (retraction-correction-gate.md),
-required alongside dual-source verification for every consequential citation.
-v0.4 Phase A: added dual-source verification logic (PubMed record + Crossref cross-check) per
-the v0.4 brief Phase 5. This REPLACES single-source "retrieved this session = VERIFIED" with a
-stricter standard — see the new Statuses section below.
+in the same change; do not hand-edit a consumer copy independently.
+v1.2: CITATION VERIFICATION 2.0. The four-state model is replaced by seven states across two
+axes, and the year-only disagreement is no longer a verification failure. Executable
+implementation: `evidence/citation_verification.py`. The v1.1 connector-layer verifier
+(`connectors/shared/citation_verifier.py`) is unchanged and still correct for what it does — it
+answers the narrower "do the two sources agree" question that this file's layer builds on.
+v0.4.1: added the retraction/correction check requirement. v0.4: added dual-source verification.
 -->
 
-# Citation Verification Gate
+# Citation Verification Gate — 2.0
 
 Loaded by: evidence-research, quality-control.
 
 ## Purpose
-Prevent unverified/recalled bibliographic details from being presented as confirmed citations.
 
-## Fields covered
-Author, Title, Year, Journal, DOI, PMID, sample size, follow-up, study design, effect estimate, CI,
-p-value, study conclusion.
+Confirm that a citation is real, correctly described, and still standing. That is all it does.
 
-## Statuses — v0.4: dual-source standard (supersedes v0.3's single-source rule)
+**A verified citation is not strong evidence, and this gate never implies that it is.** Strength
+comes from study design, appraisal, certainty and directness — four separate assessments, none of
+which this gate performs. `evidence/citation_verification.py` returns
+`evidential_strength: None` on every result for exactly this reason.
 
-**PubMed retrieval alone no longer automatically means VERIFIED.** For consequential citations,
-verification is a two-step process:
+## Two axes, both always reported
 
-1. Retrieve the PubMed record (via `~~literature`) — extract PMID, DOI (if present), title,
-   authors, journal, year.
-2. If a DOI is available, cross-check it against Crossref (via `~~journal-access`) —
-   `crossref_lookup_doi()` — and compare title/authors/journal/year field-by-field using
-   `shared/normalization.py`'s comparison functions (`titles_match`, `authors_overlap`,
-   `journals_match`, `years_match` — the last with a documented ±1 year tolerance for
-   online-first-vs-issue-date differences, applied explicitly, never silently).
+| Axis | Question | Values |
+|---|---|---|
+| **Bibliographic state** | Is the citation's metadata right? | VERIFIED · VERIFIED_WITH_METADATA_DISCREPANCY · PARTIALLY_VERIFIED · NOT_VERIFIED |
+| **Publication integrity** | Has the record since been retracted or amended? | ACTIVE · RETRACTED · CORRECTED · EXPRESSION_OF_CONCERN · UNCHECKED |
 
-Resulting classification:
+The **headline state** is drawn from both, with integrity dominating: a bibliographically perfect
+citation to a retracted paper is a safety problem, not a bibliographic success. The bibliographic
+reading is never discarded when that happens — it stays in its own field.
 
-- **VERIFIED** — retrieved from PubMed AND the relevant fields agree with an independently
-  retrieved Crossref record (when a DOI is available to check). This is a materially stricter bar
-  than "retrieved from one authoritative source this session," which was v0.3's standard.
-- **PARTIALLY VERIFIED** — either (a) the PubMed record is confirmed but no DOI is available (so
-  no Crossref cross-check is possible), or (b) the Crossref check is unavailable/incomplete
-  (connector not connected, timed out, etc.) — the specific reason must be stated, not left
-  implicit.
-- **UNVERIFIED** — recalled or inferred from training/memory and not retrieved this session, OR
-  a retrieved item where PubMed and Crossref fields **disagree** in a way that isn't within a
-  documented, explicit tolerance (see `IDENTIFIER_MISMATCH` in
-  `connectors/crossref/errors.py` and `CONNECTOR_FAILURE_MODEL.md`).
+## The seven states
 
-## Never silently repair mismatches
+| State | Meaning | May support a clinical claim? |
+|---|---|---|
+| **VERIFIED** | Both sources retrieved and agreeing on every comparable component | Yes |
+| **VERIFIED_WITH_METADATA_DISCREPANCY** | Identity confirmed; a non-identity field (in practice, the year) disagrees. Reported in full, resolved neither way | Yes, with the discrepancy stated |
+| **PARTIALLY_VERIFIED** | One source only, or too little overlapping metadata to cross-check. An absence of corroboration, not a conflict | Yes, with the cap stated |
+| **NOT_VERIFIED** | Nothing retrieved, or a disagreement that is not a benign date variation | **No** — mark (UNVER) and give a runnable search strategy |
+| **RETRACTED** | Structured retraction metadata present | **No** — excluded from synthesis entirely |
+| **CORRECTED** | A correction or erratum is linked | Yes, but the corrected version must be the one actually read |
+| **EXPRESSION_OF_CONCERN** | An expression of concern is linked | Yes, with heightened caution. **Not a retraction** — never reported as one |
 
-If PubMed and Crossref disagree on a field (e.g. different journal names beyond abbreviation
-variance, or a year outside the ±1 tolerance), the citation is `UNVERIFIED` with the specific
-disagreement named — never averaged, never "corrected" to whichever source seems more
-authoritative, never silently dropped. State both values and which sources they came from.
+## The year rule (v1.2, explicit)
 
-## Retraction/correction check — required alongside verification (v0.4.1)
+A disagreement limited to **online-first year vs print/issue year** must **not** produce
+NOT_VERIFIED when **DOI matches, title matches, authors substantially match, and journal
+matches**. It is classified **VERIFIED_WITH_METADATA_DISCREPANCY**, and the exact discrepancy is
+reported: both values, both source names.
 
-VERIFIED status confirms bibliographic accuracy. It does **not** confirm the paper hasn't since
-been retracted or corrected — that is a separate check, per `retraction-correction-gate.md`,
-required for every consequential citation alongside (not instead of) the verification status
-above. A `VERIFIED` citation to a `retracted` paper is still excluded from synthesis — see that
-file's evidence gate.
+This is a correction of substance, not a loosening. The citation is real and correctly
+identified; only a date field differs, and journals genuinely publish an article online in one
+calendar year and in an issue in the next. Calling that a failed verification was wrong, and it
+taught readers to discount the verifier — which is worse than the original error.
 
-## Hard rules (unchanged from v0.3, still apply)
-- UNVERIFIED references must never be formatted or presented as confirmed citations (no fabricated
-  DOI/PMID/journal/year dressing).
-- Use the (UNVER) DEL-7 marker on any such item.
-- Never invent a missing bibliographic field to complete a citation. State "field not verified"
-  instead.
-- If retrieval tools are unavailable, provide a ready search strategy and clearly mark any recalled
-  study details as (UNVER) rather than presenting them as retrieved.
+**±1 year remains inside the match tolerance** (`shared/normalization.py`'s `years_match`) and does
+not even register as a discrepancy. The rule above governs larger gaps.
+
+## Verification components — always individually visible
+
+Seven components are reported for every check:
+
+`DOI_MATCH` · `PMID_MATCH` · `TITLE_MATCH` · `AUTHOR_MATCH` · `JOURNAL_MATCH` · `YEAR_MATCH` ·
+`RETRACTION_STATUS`
+
+Each carries MATCH / MISMATCH / NOT_COMPARABLE (RETRACTION_STATUS carries the integrity value),
+along with both values and both source names.
+
+**No single verification score is produced.** A scalar would be read as a quality measure and
+would flatten the distinction the components exist to preserve: NOT_COMPARABLE is an absence,
+MISMATCH is a conflict, and any number that averages them means neither. A `component_counts`
+summary is given for scanning; the components themselves stay visible beneath it.
+
+## Never silently resolve a discrepancy
+
+Where sources disagree, report both values and both sources. Never average, never prefer the
+"more authoritative" source, never quietly drop the field. An *interpretation* may be offered —
+the online-first explanation above is one — but it is offered alongside the raw values, and it
+never edits them or removes the discrepancy from the output.
+
+## Identity establishment
+
+Before descriptive metadata is weighed, the two records must be shown to describe the same work:
+
+- a matching DOI or PMID, **or**
+- title AND authors AND journal all matching, where no identifier is comparable.
+
+A DOI or PMID **disagreement** is an `IDENTITY_CONFLICT` and is NOT_VERIFIED outright — the
+records may not be the same work at all, and no amount of descriptive agreement settles that.
+
+Author comparison is by surname, handling both renderings the connectors return — PubMed's
+"Smith J" and Crossref's "John Smith" (v1.2 fix in `shared/normalization.py`'s `surname()`;
+previously the last token was taken unconditionally, which turned "Smith J" into "J" and failed
+real PubMed × Crossref pairs on the author component).
+
+## Retraction/correction check — required, and separate
+
+Verification confirms bibliographic accuracy. It does not confirm the paper still stands. The
+retraction gate (`retraction-correction-gate.md`, `connectors/shared/retraction_gate.py`) is a
+separate, both-required check, and it runs **first** — before study classification and DEL-7
+tagging.
+
+**An unchecked status is not a clean one.** A record with no structured publication-status
+metadata is `UNCHECKED` and is disclosed as such. Records retrieved over the remote MCP transport
+carry no retraction metadata at all and must be re-fetched locally before they can back a
+clinical claim — see `retrieval-transports.md`.
+
+## Hard rules (unchanged, still apply)
+
+- UNVERIFIED references are never formatted as confirmed citations. No fabricated DOI, PMID,
+  journal or year dressing.
+- Use the (UNVER) DEL-7 marker on any such item, with a runnable search strategy in place of the
+  citation.
+- Never invent a missing bibliographic field. State "field not verified".
 - **Quote accurately; never paraphrase a guideline recommendation in a way that changes its
-  strength.** "May be considered" is not "is recommended" — preserve the guideline's own modal
-  verb, don't upgrade or downgrade it in translation.
-- **A verified reference already held elsewhere in this system may be reused** rather than
-  re-derived from scratch, but only with its provenance and verification status preserved
-  (VERIFIED/PARTIALLY VERIFIED/UNVERIFIED, plus the date it was originally verified) — cite it by
-  that preserved status, not as freshly re-verified. (This is the general principle from M3 §10;
-  the specific file-08/Appendix A reuse mechanics were not migrated — see
-  deferred-knowledge-dependencies.md.)
+  strength.** "May be considered" is not "is recommended".
+- A verified reference held elsewhere in the system may be reused with its provenance and
+  verification status preserved, cited by that preserved status — not as freshly re-verified.
 
 ## QC check
-Scan every citation-like statement in the final output. Any citation without an explicit
-VERIFIED/PARTIALLY VERIFIED status is treated as UNVERIFIED and must carry the (UNVER) marker.
-Per v0.4: a citation marked VERIFIED must show evidence of the dual-source cross-check, not just
-a single PubMed retrieval — quality-control's evidence checklist now checks for this explicitly
-(see quality-control/SKILL.md's Evidence section). Per v0.4.1: every consequential citation must
-also carry a retraction/correction check per `retraction-correction-gate.md` — a missing check
-(`publication_status: None`) must be disclosed, not silently treated as clean.
+
+Every citation-like statement in a final output carries an explicit state from the seven above.
+Anything without one is treated as NOT_VERIFIED and marked (UNVER).
+
+Additionally, for v1.2:
+
+- Is a year-only disagreement being reported as NOT_VERIFIED? That is now a defect.
+- Is a discrepancy being silently resolved rather than reported with both values?
+- Is a VERIFIED state anywhere doing the work of an evidence-strength claim? That is the single
+  failure this whole layer exists to prevent.

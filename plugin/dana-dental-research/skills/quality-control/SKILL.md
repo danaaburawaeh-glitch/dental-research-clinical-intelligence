@@ -229,6 +229,90 @@ established finding.
 a sound tooth for esthetic convenience, or planning irreversible treatment on an UNDETERMINED
 prognosis.
 
+## Evidence Intelligence checks (v1.2)
+
+Applies to every consequential evidence output. Full rules:
+`evidence-research/references/evidence-intelligence-architecture.md` and the reference set it
+names. Executable layer: `evidence/`.
+
+1. **Are the six stages separate?** RETRIEVAL → VERIFICATION → APPRAISAL → CERTAINTY → SYNTHESIS
+   → APPLICABILITY. Is any conclusion drawn at one stage doing the work of another — a retrieval
+   count read as evidence, a verification state read as strength, a sample size read as certainty,
+   a certainty rating read as applicability?
+
+2. **Citation state — is it one of the seven?** VERIFIED · VERIFIED_WITH_METADATA_DISCREPANCY ·
+   PARTIALLY_VERIFIED · NOT_VERIFIED · RETRACTED · CORRECTED · EXPRESSION_OF_CONCERN. Is a
+   **year-only** disagreement being reported as NOT_VERIFIED? That is now a defect, not a
+   safeguard. Is any discrepancy **silently resolved** rather than reported with both values and
+   both source names? Are the seven components individually visible, rather than collapsed into a
+   single score?
+
+3. **Is a VERIFIED citation anywhere standing in for evidential strength?** This is the single
+   failure the v1.2 layer exists to prevent. A verified citation to a small case series is a
+   verified citation to a small case series.
+
+4. **Study design — classified from structured metadata?** PublicationType and MeSH, not free
+   text, with provenance stated (REPORTED / INFERRED-with-basis / UNKNOWN). Is a randomized-trial
+   classification ever derived from the letters "RCT" in a title? Is "RCT" disambiguated on first
+   use?
+
+5. **Appraisal — is every field's provenance stated?** REPORTED / INFERRED (basis mandatory) /
+   UNKNOWN. Is any appraisal value invented to fill a form? Is a formal tool (RoB 2, ROBINS-I,
+   AMSTAR 2, QUADAS-2) named where it does not apply to the design, or where its required domains
+   were not available?
+
+6. **Certainty — is it labelled correctly?** The system's own rating is
+   `DENTAL AI STRUCTURED CERTAINTY ASSESSMENT`, never GRADE. Is a GRADE rating asserted that the
+   source authors did not perform and report? Is an author-reported GRADE attributed to them?
+   Is a rating produced where domains were not established — which must be **NOT ASSESSABLE**, not
+   LOW? Was certainty ever **upgraded**? It never is.
+
+7. **Systematic review extraction — are the two kinds of blank distinguished?** NOT REPORTED (the
+   source does not state it) vs NOT AVAILABLE (the source was not read at that depth). No
+   connector in this plugin supplies full text, so a complete-looking review extraction with no
+   gaps is a red flag.
+
+8. **Directness — six dimensions rated, verdict derived?** Population, procedure, material,
+   comparison, outcome, follow-up. Is a laboratory, computational or registry record anywhere
+   rated DIRECT, or rated on the clinical certainty scale at all? Is a surrogate outcome treated
+   as patient-important?
+
+9. **Numeric evidence gate — run over the Clinical Bottom Line itself?** Every survival %,
+   failure %, risk ratio, odds ratio, mean difference and confidence interval traces to a
+   retrieved, verified source. Was any figure reconstructed from memory? Is a
+   TYPICAL RANGE — VERIFY figure appearing in the Bottom Line, where it is not permitted?
+
+10. **Duplication and overlap — counted once?** Is the same study counted twice through a primary
+    report and its follow-up, or through two overlapping reviews? Was older evidence **deleted**
+    rather than retained?
+
+11. **Conflicts — surfaced, never averaged?** Where comparable sources disagree, is there an
+    EVIDENCE CONFLICT naming both, with the five comparison dimensions answered, a candidate
+    explanation and what would settle it? Is any pooled or middle estimate present that appears in
+    neither source?
+
+12. **Ranking — is recency doing the work of quality?** Is the evidence ordered or presented by
+    publication date? Is a tier inversion reported with its reasoning, or presented bare?
+
+13. **Claim–evidence links — all five, at the claim?** citation · verification state · study type
+    · certainty · directness. Is any consequential claim carrying only a citation?
+
+14. **Clinical Bottom Line — all seven sections present?** Including the empty ones, rendered
+    explicitly. Is a claim sitting in "well established" or "reasonably supported" that its
+    certainty and directness do not support?
+
+15. **Output mode — every gate run?** A shorter mode is not a less-checked one. QUICK still
+    requires certainty, directness and citation status.
+
+**CRITICAL FAILURE — release-blocking:**
+- a VERIFIED citation presented as, or allowed to function as, evidential strength;
+- a GRADE rating the source authors did not report;
+- an effect estimate, sample size or survival figure with no retrieved source;
+- a retracted record supporting a clinical claim;
+- a trial registry record used as evidence of efficacy;
+- laboratory or computational evidence used to claim a clinical outcome;
+- conflicting evidence averaged, or the dissenting source omitted.
+
 ## Author identity & citation check (v0.9.1) — global, every output
 
 Run `clinical/identity_policy.py` `scan()` on any output before release, with the right context.
