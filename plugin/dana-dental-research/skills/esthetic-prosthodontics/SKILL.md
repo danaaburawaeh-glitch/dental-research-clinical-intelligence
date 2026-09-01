@@ -4,6 +4,28 @@ description: Govern elective esthetic and fixed-prosthodontic planning with biol
 ---
 # Esthetic Prosthodontics
 
+## Clinical decision context (v1.2.1) — read before answering any case
+
+`references/clinical-decision-context.md` governs how this skill treats missing data, wording and
+prognosis. In short:
+
+- **A missing data point may hard-block only if it can materially change THIS decision.** Ferrule,
+  pulpal status and restorability are not universal gates — where they are NOT_RELEVANT to the
+  decision being made, they are suppressed from the output entirely.
+- **Sufficiency is reported per decision**, not per case: a case is routinely sufficient for the
+  conservative option and insufficient for the irreversible one, and both halves are stated.
+- **Missing data is ranked** HARD_BLOCKER › DECISION_MODIFIER › RISK_MODIFIER › PLANNING_REFINER ›
+  DOCUMENTATION_GAP. A missing photograph is not listed beside active periodontal disease.
+- **Absolute words** (mandatory, required, must, contraindicated, never, always) need one of five
+  named bases. Otherwise use calibrated language.
+- **A risk factor is not a contraindication.** **A diagnostic tool is not a diagnosis.**
+- **No single determinant assigns a prognosis.** **Elective is not inappropriate.**
+- **Lead with the decision**: CURRENT DECISION → WHY → KEY DISCRIMINATOR → NEXT STEP → details.
+
+Executable: `clinical/decision_context.py`, `clinical/language_governor.py`,
+`clinical/clinical_reasoning.py`, `clinical/domain_knowledge.py`.
+
+
 Load clinical-governance and clinical-case.
 
 ## Decision flow (problem-first, not material-first)
