@@ -170,10 +170,29 @@ def detect(records, classifications=None):
     independent = len([r for r in deduped if _rid(r) not in clustered]) + len(
         [f for f in findings if f.records])
 
+    # Cohort overlap needs features PubMed abstracts do not carry (institution, study period,
+    # sample size). It is run here anyway, and reported, so that "no cohort overlap was assessed"
+    # is visible as a stated limitation rather than an invisible omission. Enrich the records with
+    # those fields — from full texts, or supplied by the clinician — to make it informative.
+    cohort_assessments = assess_all_cohort_overlaps(deduped)
+    assessable = [r for r in deduped
+                  if _institutions(r) or _period(r) or _sample(r)]
+
     return {
         "deduplicated": deduped,
         "merge_log": merge_log,
         "findings": findings,
+        "cohort_assessments": cohort_assessments,
+        "cohort_assessment_coverage": {
+            "records_with_assessable_features": len(assessable),
+            "records_total": len(deduped),
+            "note": (
+                "Cohort overlap is graded from institution, study period, sample size, "
+                "intervention, site and population features. Records lacking them cannot be "
+                "assessed, and their absence of a flag is not evidence of independence."
+                if len(assessable) < len(deduped) else
+                "All retrieved records carried assessable cohort features."),
+        },
         "independent_study_count": independent,
         "counting_rule": (
             "Each overlap cluster contributes ONE independent study to the weight of the "
@@ -258,3 +277,275 @@ def _review_overlaps(records, design_of):
                                 f"inclusion standard that materially changes interpretation."),
                         shared_evidence=sorted(shared)))
     return findings
+
+
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+# COHORT OVERLAP ASSESSMENT (v1.2 RC)
+#
+# The trial-registration clustering above is exact and safe, and it is blind to the commonest
+# real overlap in dentistry: two retrospective reports of the same patient cohort from the same
+# unit, years apart, with no registration identifier anywhere. Real case from validation —
+# PMID 22259802 (Beier 2012, Innsbruck, veneers placed 1987-2009) and PMID 11203615 (Dumfahrt
+# 2000, same institution, shared author, veneers of 1-10 years' service). Almost certainly
+# overlapping patients; nothing in the structured metadata says so.
+#
+# Counting those as two independent studies overstates the evidence base. Merging them on a
+# hunch destroys evidence. So this layer does neither: it grades the SUSPICION, names the
+# features that produced it, lowers the confidence available for pooled interpretation, and
+# keeps both citations.
+#
+# THE RULE THAT MATTERS MOST: shared authorship alone is never an overlap signal. Prolific
+# groups publish repeatedly on the same topic with entirely different patients; if co-authorship
+# were sufficient, every productive research unit would be collapsed into a single study.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+
+NO_OVERLAP_SIGNAL = "NO_OVERLAP_SIGNAL"
+POSSIBLE_OVERLAP = "POSSIBLE_OVERLAP"
+PROBABLE_OVERLAP = "PROBABLE_OVERLAP"
+CONFIRMED_OVERLAP = "CONFIRMED_OVERLAP"
+
+OVERLAP_LEVELS = (NO_OVERLAP_SIGNAL, POSSIBLE_OVERLAP, PROBABLE_OVERLAP, CONFIRMED_OVERLAP)
+
+# Features that, on their own, materially raise the suspicion of a shared cohort.
+STRONG_FEATURES = ("shared_institution", "study_period_overlap", "identical_sample_size")
+# Features that corroborate but cannot carry a level alone.
+SUPPORTING_FEATURES = ("same_intervention", "same_country_or_site", "same_population_description",
+                       "same_follow_up_window", "nested_sample_size")
+# Recorded, reported, and deliberately excluded from the level calculation.
+NON_COUNTING_FEATURES = ("shared_authors",)
+
+AUTHORS_ALONE_RULE = (
+    "Shared authorship is reported but never counts toward an overlap level. Research groups "
+    "publish repeatedly on their own subject with different patients; treating co-authorship as "
+    "an overlap signal would collapse every productive unit into a single study."
+)
+
+CONFIRMED_REQUIREMENT = (
+    "CONFIRMED_OVERLAP requires an explicit shared identifier (trial registration) or a stated "
+    "linkage in one of the records themselves. It is never reached by accumulating "
+    "circumstantial features, however many."
+)
+
+
+class CohortOverlapAssessment:
+    def __init__(self, level, record_a, record_b, features, triggered, explanation):
+        if level not in OVERLAP_LEVELS:
+            raise ValueError(f"{level!r} is not one of {OVERLAP_LEVELS}")
+        self.level = level
+        self.record_a = record_a
+        self.record_b = record_b
+        self.features = features
+        self.triggered = triggered
+        self.explanation = explanation
+
+    @property
+    def counts_as_independent_studies(self):
+        """
+        How much independent weight the pair contributes.
+
+        POSSIBLE deliberately returns None rather than a number: the honest answer is that it is
+        not established whether this is one study or two, and picking either would assert
+        something the evidence does not support.
+        """
+        if self.level in (CONFIRMED_OVERLAP, PROBABLE_OVERLAP):
+            return 1
+        if self.level == POSSIBLE_OVERLAP:
+            return None
+        return 2
+
+    @property
+    def reduces_pooled_confidence(self):
+        return self.level in (POSSIBLE_OVERLAP, PROBABLE_OVERLAP, CONFIRMED_OVERLAP)
+
+    @property
+    def deletes_a_study(self):
+        """Always False. Recorded as a property so the guarantee is testable, not just stated."""
+        return False
+
+    def to_dict(self):
+        return {
+            "level": self.level,
+            "record_a": _rid(self.record_a),
+            "record_b": _rid(self.record_b),
+            "citations_preserved": [_rid(self.record_a), _rid(self.record_b)],
+            "features_evaluated": dict(self.features),
+            "triggered_by": list(self.triggered),
+            "explanation": self.explanation,
+            "counts_as_independent_studies": self.counts_as_independent_studies,
+            "reduces_pooled_confidence": self.reduces_pooled_confidence,
+            "deletes_a_study": self.deletes_a_study,
+            "authors_alone_rule": AUTHORS_ALONE_RULE,
+            "confirmed_requirement": CONFIRMED_REQUIREMENT,
+            "pooled_interpretation_caution": self._caution(),
+        }
+
+    def _caution(self):
+        if self.level == CONFIRMED_OVERLAP:
+            return ("These records report the same study. Count them once. Both citations are "
+                    "retained; neither is deleted.")
+        if self.level == PROBABLE_OVERLAP:
+            return ("Treat as one study for the purpose of weighing the evidence, pending "
+                    "verification against the full texts. Both citations are retained, and the "
+                    "overlap is stated as probable rather than established.")
+        if self.level == POSSIBLE_OVERLAP:
+            return ("These records may report overlapping patients. Do not present them as two "
+                    "independent confirmations without checking. Neither is discounted, and the "
+                    "independent-study count is left unresolved rather than guessed.")
+        return "No overlap signal beyond anything reported above. Treat as independent."
+
+
+def _norm(text):
+    return " ".join(str(text or "").lower().split()) or None
+
+
+def _institutions(record):
+    value = record.get("institutions") or record.get("affiliations") or record.get("institution")
+    if isinstance(value, str):
+        value = [value]
+    return {_norm(v) for v in (value or []) if _norm(v)}
+
+
+def _period(record):
+    """Returns (start, end) as ints, from an explicit study period or recruitment dates."""
+    for key in ("study_period", "recruitment_dates", "enrolment_period"):
+        value = record.get(key)
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            try:
+                return int(str(value[0])[:4]), int(str(value[1])[:4])
+            except (TypeError, ValueError):
+                continue
+    start, end = record.get("study_start_year"), record.get("study_end_year")
+    if start and end:
+        try:
+            return int(start), int(end)
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _periods_overlap(a, b):
+    pa, pb = _period(a), _period(b)
+    if not pa or not pb:
+        return None
+    return max(pa[0], pb[0]) <= min(pa[1], pb[1])
+
+
+def _sample(record):
+    value = record.get("sample_size_n") or record.get("n_units") or record.get("enrollment")
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def assess_cohort_overlap(record_a, record_b):
+    """
+    Grade the suspicion that two records report overlapping patients.
+
+    Every feature is evaluated three-valued — True (agrees), False (differs), None (not
+    established on at least one side) — so "we could not tell" is never scored as "no".
+    """
+    features = {}
+    triggered = []
+
+    ids_a, ids_b = _trial_ids(record_a), _trial_ids(record_b)
+    shared_ids = ids_a & ids_b
+    features["shared_registration_id"] = bool(shared_ids) if (ids_a and ids_b) else None
+
+    linkage = None
+    for rec, other in ((record_a, record_b), (record_b, record_a)):
+        declared = rec.get("same_cohort_as") or rec.get("supersedes") or rec.get("extends")
+        if declared and _rid(other) and str(_rid(other)) in str(declared):
+            linkage = f"{_rid(rec)} declares a linkage to {_rid(other)}"
+    features["explicit_linkage"] = bool(linkage) if linkage else None
+
+    inst_a, inst_b = _institutions(record_a), _institutions(record_b)
+    features["shared_institution"] = bool(inst_a & inst_b) if (inst_a and inst_b) else None
+
+    features["study_period_overlap"] = _periods_overlap(record_a, record_b)
+
+    sa, sb = _sample(record_a), _sample(record_b)
+    features["identical_sample_size"] = (sa == sb) if (sa and sb) else None
+    features["nested_sample_size"] = (sa != sb) if (sa and sb) else None
+
+    ia = _norm(record_a.get("intervention") or record_a.get("material"))
+    ib = _norm(record_b.get("intervention") or record_b.get("material"))
+    features["same_intervention"] = (ia == ib) if (ia and ib) else None
+
+    ca = _norm(record_a.get("country") or record_a.get("site"))
+    cb = _norm(record_b.get("country") or record_b.get("site"))
+    features["same_country_or_site"] = (ca == cb) if (ca and cb) else None
+
+    pa = _norm(record_a.get("population_description"))
+    pb = _norm(record_b.get("population_description"))
+    features["same_population_description"] = (pa == pb) if (pa and pb) else None
+
+    fa = _norm(record_a.get("follow_up_window"))
+    fb = _norm(record_b.get("follow_up_window"))
+    features["same_follow_up_window"] = (fa == fb) if (fa and fb) else None
+
+    auth_a = {_norm(x).split()[-1] for x in (record_a.get("authors") or []) if _norm(x)}
+    auth_b = {_norm(x).split()[-1] for x in (record_b.get("authors") or []) if _norm(x)}
+    shared_authors = auth_a & auth_b
+    features["shared_authors"] = bool(shared_authors) if (auth_a and auth_b) else None
+
+    # ── Level ───────────────────────────────────────────────────────────────────────────────
+    if features["shared_registration_id"] is True:
+        triggered.append(f"shared trial registration identifier ({', '.join(sorted(shared_ids))})")
+        return CohortOverlapAssessment(
+            CONFIRMED_OVERLAP, record_a, record_b, features, triggered,
+            "Both records carry the same trial registration identifier — an explicit shared "
+            "identifier, which is the only basis on which overlap is confirmed.")
+    if features["explicit_linkage"] is True:
+        triggered.append(linkage)
+        return CohortOverlapAssessment(
+            CONFIRMED_OVERLAP, record_a, record_b, features, triggered,
+            f"Explicit source linkage: {linkage}.")
+
+    strong = [f for f in STRONG_FEATURES if features.get(f) is True]
+    supporting = [f for f in SUPPORTING_FEATURES if features.get(f) is True]
+    triggered.extend(strong + supporting)
+
+    if len(strong) >= 2 and len(supporting) >= 1:
+        level = PROBABLE_OVERLAP
+        explanation = (
+            f"Two or more strong features agree ({', '.join(strong)}) with corroboration from "
+            f"{', '.join(supporting)}. Same unit, overlapping period and matching clinical "
+            f"detail together make a shared cohort more likely than not — but nothing here is an "
+            f"identifier, so this is probable, not confirmed.")
+    elif strong and (supporting or features.get("shared_authors") is True):
+        level = POSSIBLE_OVERLAP
+        extra = ", ".join(supporting) or "shared authorship (reported, not counted)"
+        explanation = (
+            f"One strong feature ({', '.join(strong)}) with weaker corroboration ({extra}). "
+            f"Enough to stop treating these as independent confirmations without checking; not "
+            f"enough to treat them as one study.")
+    elif len(supporting) >= 3:
+        level = POSSIBLE_OVERLAP
+        explanation = (
+            f"No strong feature, but several supporting ones agree ({', '.join(supporting)}). "
+            f"Circumstantial: worth checking before pooling.")
+    else:
+        level = NO_OVERLAP_SIGNAL
+        if features.get("shared_authors") is True and not strong and not supporting:
+            triggered.append("shared authors (reported, not counted toward the level)")
+            explanation = (
+                "The records share at least one author and nothing else. " + AUTHORS_ALONE_RULE)
+        else:
+            explanation = ("No feature combination reached an overlap signal. Treat the records "
+                           "as independent unless something outside this metadata says otherwise.")
+
+    return CohortOverlapAssessment(level, record_a, record_b, features, triggered, explanation)
+
+
+def assess_all_cohort_overlaps(records, minimum_level=POSSIBLE_OVERLAP):
+    """Pairwise assessment across a retrieved set. Returns assessments at or above
+    `minimum_level`; nothing is removed from `records`."""
+    order = {lvl: i for i, lvl in enumerate(OVERLAP_LEVELS)}
+    out = []
+    for i, a in enumerate(records):
+        for b in records[i + 1:]:
+            assessment = assess_cohort_overlap(a, b)
+            if order[assessment.level] >= order[minimum_level]:
+                out.append(assessment)
+    return out

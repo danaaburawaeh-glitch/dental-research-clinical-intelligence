@@ -82,6 +82,7 @@ INTEGRITY_UNCHECKED = "UNCHECKED"
 # ── Component verdicts ──────────────────────────────────────────────────────────────────────
 MATCH = "MATCH"
 MISMATCH = "MISMATCH"
+WITHIN_TOLERANCE = "WITHIN_TOLERANCE"   # differs, by a documented and explained amount
 NOT_COMPARABLE = "NOT_COMPARABLE"   # field absent on one/both sides — an absence, not a conflict
 
 DOI_MATCH = "DOI_MATCH"
@@ -104,11 +105,25 @@ DESCRIPTIVE_COMPONENTS = (TITLE_MATCH, AUTHOR_MATCH, JOURNAL_MATCH, YEAR_MATCH)
 # disagreement out of NOT_VERIFIED.
 DISCREPANCY_TOLERANT_BASIS = (DOI_MATCH, TITLE_MATCH, AUTHOR_MATCH, JOURNAL_MATCH)
 
+# The documented online-first vs print/issue tolerance. A journal routinely publishes an article
+# online in one calendar year and in an issue in the next; it does not publish it in an issue five
+# years later. Beyond this window the online-first explanation no longer accounts for the gap, so
+# the disagreement is unexplained and falls back to the ordinary mismatch rules.
+ONLINE_FIRST_YEAR_TOLERANCE = 1
+
+DISCREPANCY_ONLINE_FIRST = "ONLINE_FIRST_VS_ISSUE_YEAR"
+
 ONLINE_FIRST_INTERPRETATION = (
-    "A year difference between an online-first publication date and a print/issue date is a "
-    "known, benign cause of this disagreement when DOI, title, authors and journal all agree. "
-    "This is offered as an interpretation only — both values are reported above and neither has "
-    "been altered, preferred or dropped."
+    "A year difference of one calendar year between an online-first publication date and a "
+    "print/issue date is a known, benign cause of this disagreement when the identity of the "
+    "record is otherwise confirmed. This is offered as an interpretation only — both values are "
+    "reported above and neither has been altered, preferred or dropped."
+)
+
+BEYOND_TOLERANCE_INTERPRETATION = (
+    "The year difference exceeds the documented online-first tolerance of "
+    f"{ONLINE_FIRST_YEAR_TOLERANCE} year, so online-first versus issue dating does not account "
+    "for it. The disagreement is unexplained and the citation is not treated as confirmed."
 )
 
 
@@ -274,12 +289,8 @@ def verify_citation(pubmed_record=None, crossref_record=None, extra_records=None
     components[JOURNAL_MATCH] = _compare_field(
         pm.get("journal"), cr.get("journal"), journals_match, pm_name, cr_name, discrepancies,
         "Journal", note="Compared with abbreviation tolerance (ISO abbreviation vs full title).")
-    components[YEAR_MATCH] = _compare_field(
-        pm.get("publication_year"), cr.get("publication_year"),
-        lambda a, b: years_match(a, b, allow_adjacent=True), pm_name, cr_name, discrepancies,
-        "Publication year",
-        note="+/-1 year is tolerated as a match (online-first vs issue date); a larger gap is "
-             "reported as a discrepancy, never silently accepted.")
+    components[YEAR_MATCH] = _compare_year(
+        pm.get("publication_year"), cr.get("publication_year"), pm_name, cr_name, discrepancies)
 
     counts = _counts(components)
     bibliographic = _classify_bibliographic(components, discrepancies)
@@ -334,8 +345,48 @@ def _compare_field(a, b, matcher, name_a, name_b, discrepancies, label, note=Non
     return _component(MISMATCH, name_a, a, name_b, b, note=note)
 
 
+def _compare_year(a, b, name_a, name_b, discrepancies):
+    """
+    Three-valued, because a publication year has three meaningfully different outcomes and the
+    previous two-valued comparison collapsed two of them.
+
+        MATCH             identical
+        WITHIN_TOLERANCE  differs by <= ONLINE_FIRST_YEAR_TOLERANCE — a real, reportable
+                          difference with a known benign cause. Previously this was silently
+                          folded into MATCH, so the citation came back VERIFIED and the reader
+                          never saw that the two sources disagreed at all.
+        MISMATCH          beyond the tolerance — unexplained.
+
+    A WITHIN_TOLERANCE outcome is always recorded in `discrepancies`: it is reported, never
+    resolved, and neither year is preferred.
+    """
+    if a in (None, "") or b in (None, ""):
+        return _component(NOT_COMPARABLE, name_a, a, name_b, b,
+                          note="Publication year absent on at least one side.")
+    try:
+        gap = abs(int(a) - int(b))
+    except (TypeError, ValueError):
+        return _component(NOT_COMPARABLE, name_a, a, name_b, b,
+                          note="Publication year not comparable as a number.")
+    if gap == 0:
+        return _component(MATCH, name_a, a, name_b, b)
+
+    within = gap <= ONLINE_FIRST_YEAR_TOLERANCE
+    discrepancies.append({
+        "component": YEAR_MATCH, "field": "Publication year",
+        "source_a": name_a, "value_a": a, "source_b": name_b, "value_b": b,
+        "gap_years": gap,
+        "discrepancy_type": DISCREPANCY_ONLINE_FIRST if within else None,
+        "severity": "METADATA_DISCREPANCY" if within else "UNEXPLAINED_DISAGREEMENT",
+        "interpretation": ONLINE_FIRST_INTERPRETATION if within else BEYOND_TOLERANCE_INTERPRETATION,
+    })
+    return _component(WITHIN_TOLERANCE if within else MISMATCH, name_a, a, name_b, b,
+                      note=(f"Differs by {gap} year(s); documented tolerance is "
+                            f"{ONLINE_FIRST_YEAR_TOLERANCE}."))
+
+
 def _counts(components):
-    counts = {MATCH: 0, MISMATCH: 0, NOT_COMPARABLE: 0}
+    counts = {MATCH: 0, WITHIN_TOLERANCE: 0, MISMATCH: 0, NOT_COMPARABLE: 0}
     for comp in COMPONENTS:
         if comp == RETRACTION_STATUS:
             continue
@@ -347,11 +398,19 @@ def _counts(components):
 
 def _classify_bibliographic(components, discrepancies):
     """
-    The v1.2 decision table.
+    The v1.2 RC decision table.
 
     identity_established — the two records demonstrably describe the same work, either via a
     matching strong identifier, or (when neither source exposed a comparable identifier) via
     title AND authors AND journal all matching.
+
+    The year is handled separately from the other descriptive fields, because it is the one field
+    with a documented benign cause of disagreement:
+
+        year WITHIN_TOLERANCE, identity established, nothing else mismatching
+            -> VERIFIED_WITH_METADATA_DISCREPANCY
+        year MISMATCH (beyond tolerance)
+            -> falls back to the ordinary rules, i.e. NOT_VERIFIED
     """
     verdicts = {c: components[c]["verdict"] for c in COMPONENTS}
 
@@ -365,39 +424,32 @@ def _classify_bibliographic(components, discrepancies):
     identity_established = strong_identity or descriptive_identity
 
     if not identity_established:
-        # Either too little overlapping metadata to compare, or a substantive disagreement in
-        # the descriptive fields with no identifier to settle it.
         if any(verdicts[c] == MISMATCH for c in DESCRIPTIVE_COMPONENTS):
             return NOT_VERIFIED
+        if verdicts[YEAR_MATCH] == WITHIN_TOLERANCE:
+            # A year discrepancy with no established identity is not a benign-cause case: there
+            # is nothing confirming the two records are the same work in the first place.
+            return PARTIALLY_VERIFIED
         return PARTIALLY_VERIFIED
 
-    mismatched = [c for c in DESCRIPTIVE_COMPONENTS if verdicts[c] == MISMATCH]
-    if not mismatched:
-        comparable = [c for c in DESCRIPTIVE_COMPONENTS if verdicts[c] == MATCH]
-        if not comparable and not strong_identity:
-            return PARTIALLY_VERIFIED
-        return VERIFIED
+    # Identity is established. Any descriptive field OTHER than the year that disagrees is an
+    # ordinary mismatch and is decisive.
+    non_year_mismatch = [c for c in (TITLE_MATCH, AUTHOR_MATCH, JOURNAL_MATCH)
+                         if verdicts[c] == MISMATCH]
+    if non_year_mismatch:
+        return NOT_VERIFIED
 
-    # Brief §1, the explicit rule: a disagreement confined to the year, with DOI, title, authors
-    # and journal all matching, is a metadata discrepancy — not a failed verification.
-    basis_all_match = all(verdicts[c] == MATCH for c in DISCREPANCY_TOLERANT_BASIS)
-    if mismatched == [YEAR_MATCH] and basis_all_match:
-        for d in discrepancies:
-            if d["component"] == YEAR_MATCH:
-                d["interpretation"] = ONLINE_FIRST_INTERPRETATION
+    if verdicts[YEAR_MATCH] == MISMATCH:
+        # Beyond the documented tolerance — the online-first explanation does not reach it.
+        return NOT_VERIFIED
+
+    if verdicts[YEAR_MATCH] == WITHIN_TOLERANCE:
         return VERIFIED_WITH_METADATA_DISCREPANCY
 
-    # A year disagreement with identity established by PMID rather than DOI is still a
-    # discrepancy rather than a failure, provided the descriptive fields that ARE comparable all
-    # agree. The identity is not in doubt; only a date field is.
-    if mismatched == [YEAR_MATCH] and strong_identity and all(
-            verdicts[c] in (MATCH, NOT_COMPARABLE) for c in (TITLE_MATCH, AUTHOR_MATCH, JOURNAL_MATCH)):
-        for d in discrepancies:
-            if d["component"] == YEAR_MATCH:
-                d["interpretation"] = ONLINE_FIRST_INTERPRETATION
-        return VERIFIED_WITH_METADATA_DISCREPANCY
-
-    return NOT_VERIFIED
+    comparable = [c for c in DESCRIPTIVE_COMPONENTS if verdicts[c] == MATCH]
+    if not comparable and not strong_identity:
+        return PARTIALLY_VERIFIED
+    return VERIFIED
 
 
 def _headline(bibliographic, integrity):
@@ -418,17 +470,22 @@ def _basis_for(bibliographic, components, counts):
                 f"({counts[MATCH]} MATCH, {counts[NOT_COMPARABLE]} not comparable).")
     if bibliographic == VERIFIED_WITH_METADATA_DISCREPANCY:
         return ("Identity is confirmed and the descriptive metadata agrees, apart from the "
-                "publication year. The citation is real and correctly identified; the year "
-                "disagreement is reported in full and has not been resolved either way.")
+                "publication year, which differs within the documented online-first tolerance. "
+                "The citation is real and correctly identified; the year disagreement is "
+                "reported in full and has not been resolved either way.")
     if bibliographic == PARTIALLY_VERIFIED:
         return ("Records were retrieved but there was not enough overlapping, comparable "
                 "metadata to establish agreement. Not a conflict — an absence of corroboration.")
-    return ("The retrieved records disagree in a way that is not a benign date variation. The "
-            "specific disagreements are listed in `discrepancies` with both values named. "
-            "Nothing has been averaged, preferred or repaired.")
+    return ("The retrieved records disagree in a way that is not a benign date variation — "
+            "either a non-year field conflicts, or the year gap exceeds the documented "
+            f"online-first tolerance of {ONLINE_FIRST_YEAR_TOLERANCE} year. The specific "
+            "disagreements are listed in `discrepancies` with both values named. Nothing has "
+            "been averaged, preferred or repaired.")
 
 
 def _result(state, bibliographic, integrity, components, discrepancies, sources, basis):
+    year_component = components.get(YEAR_MATCH) or {}
+    year_discrepancy = next((d for d in discrepancies if d.get("component") == YEAR_MATCH), None)
     return {
         "state": state,
         "bibliographic_state": bibliographic,
@@ -437,6 +494,15 @@ def _result(state, bibliographic, integrity, components, discrepancies, sources,
         "component_counts": _counts(components),
         "discrepancies": discrepancies,
         "sources_consulted": sources,
+        # Explicit, unambiguous year reporting — required by the v1.2 RC so that a caller never
+        # has to work out which source said which year. Neither value is ever replaced.
+        "pubmed_year": year_component.get("value_a"),
+        "crossref_year": year_component.get("value_b"),
+        "year_source_names": {"pubmed_year_from": year_component.get("source_a"),
+                              "crossref_year_from": year_component.get("source_b")},
+        "discrepancy_type": (year_discrepancy or {}).get("discrepancy_type"),
+        "year_gap": (year_discrepancy or {}).get("gap_years"),
+        "year_tolerance": ONLINE_FIRST_YEAR_TOLERANCE,
         "basis": basis,
         "may_support_clinical_claim": state in CITABLE_STATES,
         "evidential_strength": None,

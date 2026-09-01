@@ -26,7 +26,14 @@ further assessments, each of which can fail independently. The executable layer 
 `citation_verification.py` · `study_design.py` · `appraisal.py` · `certainty.py` ·
 `sr_extraction.py` · `overlap.py` · `directness.py` · `numeric_gate.py` · `conflict.py` ·
 `rank.py` · `claim_link.py` · `search_builder.py` · `evidence_table.py` · `bottom_line.py` ·
-`output_modes.py` · `pipeline.py`.
+`output_modes.py` · `pipeline.py` · `transport_reconcile.py`.
+
+**v1.2 RC.** Two release blockers from the real-world validation are closed. (1) The remote MCP
+tool and the local layer now return the same citation semantics, and any residual divergence is
+reconciled at the point of use by `transport_reconcile.py`, with the local state authoritative and
+the divergence reported — see references/citation-verification.md. (2) Cohort overlap is now
+graded NO_OVERLAP_SIGNAL / POSSIBLE / PROBABLE / CONFIRMED from named features, never from shared
+authorship alone, and never by deleting a study — see references/duplication-and-overlap.md.
 
 v1.1.0 note (2026-09-01): the **Dental AI Research Remote MCP** server
 (`dental-ai-research`, declared in the plugin's `.mcp.json`) is now a second retrieval transport
@@ -176,6 +183,10 @@ a small amount of new connective text making an implicit step explicit.
    updated review, and overlapping meta-analyses. Each cluster counts as **one** independent
    study; nothing is deleted, and older evidence is retained where it materially changes
    interpretation. A retrieval count is not an evidence count.
+   **(RC)** Then run `assess_cohort_overlap()` across the retrieved set for unregistered cohort
+   overlap — the same unit reporting the same patients twice, years apart, with no identifier.
+   Report the level and the features that triggered it; shared authorship alone never counts, and
+   neither study is ever deleted.
 
 10. **Appraise.** references/evidence-quality-appraisal.md, `evidence/appraisal.py`. Every field
     carries REPORTED / INFERRED (basis mandatory) / UNKNOWN. **Never invent missing appraisal

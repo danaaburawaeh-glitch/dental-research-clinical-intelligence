@@ -99,19 +99,31 @@ check("02 full agreement across both sources is VERIFIED",
 check("03 a journal abbreviation variant is a MATCH, not a discrepancy",
       cv.verify_citation(pm(), crx())["components"][cv.JOURNAL_MATCH]["verdict"] == cv.MATCH)
 
-year_gap = cv.verify_citation(pm(publication_year=2019), crx(publication_year=2021))
-check("04 a >1-year gap with DOI/title/author/journal matching is VERIFIED_WITH_METADATA_DISCREPANCY",
+year_gap = cv.verify_citation(pm(publication_year=2025), crx(publication_year=2026))
+check("04 a within-tolerance year gap is VERIFIED_WITH_METADATA_DISCREPANCY, not VERIFIED",
       year_gap["state"] == cv.VERIFIED_WITH_METADATA_DISCREPANCY)
 check("05 the exact year discrepancy is reported with both values and both sources",
-      year_gap["discrepancies"][0]["value_a"] == 2019
-      and year_gap["discrepancies"][0]["value_b"] == 2021
+      year_gap["discrepancies"][0]["value_a"] == 2025
+      and year_gap["discrepancies"][0]["value_b"] == 2026
       and year_gap["discrepancies"][0]["source_a"] == "pubmed")
 check("06 the online-first interpretation is offered without resolving the discrepancy",
       "online-first" in year_gap["discrepancies"][0]["interpretation"]
       and "neither has been altered" in year_gap["discrepancies"][0]["interpretation"])
-check("07 a +/-1 year difference is inside tolerance and stays VERIFIED",
-      cv.verify_citation(pm(publication_year=2019), crx(publication_year=2020))["state"]
-      == cv.VERIFIED)
+check("07 the discrepancy type and both years are reported as explicit fields",
+      year_gap["discrepancy_type"] == cv.DISCREPANCY_ONLINE_FIRST
+      and year_gap["pubmed_year"] == 2025 and year_gap["crossref_year"] == 2026
+      and year_gap["year_gap"] == 1)
+check("07b a year gap beyond the documented tolerance is NOT_VERIFIED",
+      cv.verify_citation(pm(publication_year=2019), crx(publication_year=2021))["state"]
+      == cv.NOT_VERIFIED)
+check("07c the beyond-tolerance case is not given the benign online-first explanation",
+      "does not account for it" in
+      cv.verify_citation(pm(publication_year=2019),
+                         crx(publication_year=2021))["discrepancies"][0]["interpretation"])
+check("07d the year comparison is three-valued",
+      cv.verify_citation(pm(publication_year=2025),
+                         crx(publication_year=2026))["components"][cv.YEAR_MATCH]["verdict"]
+      == cv.WITHIN_TOLERANCE)
 
 doi_conflict = cv.verify_citation(pm(), crx(doi="10.1000/other"))
 check("08 a DOI disagreement is NOT_VERIFIED", doi_conflict["state"] == cv.NOT_VERIFIED)

@@ -125,8 +125,8 @@ print("\n── Trap behaviour, executed against the engine ──")
 
 def run_metadata_discrepancy(item):
     fixture = (item.get("fixture") or {}).get("records", [{}])[0]
-    pm_year = fixture.get("pubmed_year", 2019)
-    cr_year = fixture.get("crossref_year", 2021)
+    pm_year = fixture.get("pubmed_year", 2025)
+    cr_year = fixture.get("crossref_year", 2026)
     base = dict(doi="10.0000/benchmark-fixture", title="A retrieved dental study",
                 authors=["Smith J"], journal="Clin Oral Investig")
     result = cv.verify_citation(
@@ -137,8 +137,16 @@ def run_metadata_discrepancy(item):
     ok = (result["state"] == cv.VERIFIED_WITH_METADATA_DISCREPANCY
           and result["discrepancies"]
           and result["discrepancies"][0]["value_a"] == pm_year
-          and result["discrepancies"][0]["value_b"] == cr_year)
-    return ok, f"state={result['state']}"
+          and result["discrepancies"][0]["value_b"] == cr_year
+          and result["discrepancy_type"] == cv.DISCREPANCY_ONLINE_FIRST)
+    # The same fixture, widened beyond the documented tolerance, must fall back to NOT_VERIFIED.
+    beyond = cv.verify_citation(
+        {**base, "source": "pubmed", "publication_year": pm_year, "is_retracted": False,
+         "publication_status": "active"},
+        {**base, "source": "crossref", "journal": "Clinical Oral Investigations",
+         "publication_year": pm_year + 4})
+    ok = ok and beyond["state"] == cv.NOT_VERIFIED
+    return ok, f"state={result['state']}, beyond={beyond['state']}"
 
 
 def run_weak_evidence(item):

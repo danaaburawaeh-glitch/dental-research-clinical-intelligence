@@ -1,6 +1,6 @@
 <!--
 REFERENCE-ID: citation-verification
-VERSION: 1.2.0
+VERSION: 1.2.0-rc
 CANONICAL-OWNER: evidence-research (see /ARCHITECTURE_REFERENCE_MAP.md for the full owner/consumer table)
 LAST-SYNCHRONIZED: 2026-09-01
 This file is a bundled copy. Edit only at the canonical owner location and re-sync all bundles
@@ -49,20 +49,48 @@ reading is never discarded when that happens — it stays in its own field.
 | **CORRECTED** | A correction or erratum is linked | Yes, but the corrected version must be the one actually read |
 | **EXPRESSION_OF_CONCERN** | An expression of concern is linked | Yes, with heightened caution. **Not a retraction** — never reported as one |
 
-## The year rule (v1.2, explicit)
+## The year rule (v1.2 RC — three-valued, and identical on both transports)
 
-A disagreement limited to **online-first year vs print/issue year** must **not** produce
-NOT_VERIFIED when **DOI matches, title matches, authors substantially match, and journal
-matches**. It is classified **VERIFIED_WITH_METADATA_DISCREPANCY**, and the exact discrepancy is
-reported: both values, both source names.
+The publication year is compared three ways, because it has three meaningfully different
+outcomes:
 
-This is a correction of substance, not a loosening. The citation is real and correctly
-identified; only a date field differs, and journals genuinely publish an article online in one
-calendar year and in an issue in the next. Calling that a failed verification was wrong, and it
-taught readers to discount the verifier — which is worse than the original error.
+| Year comparison | Meaning | Resulting state (identity established, nothing else disagreeing) |
+|---|---|---|
+| **MATCH** | identical | VERIFIED |
+| **WITHIN_TOLERANCE** | differs by ≤ 1 year — the documented online-first vs print/issue window | **VERIFIED_WITH_METADATA_DISCREPANCY** |
+| **MISMATCH** | differs by > 1 year | **NOT_VERIFIED** — unexplained |
 
-**±1 year remains inside the match tolerance** (`shared/normalization.py`'s `years_match`) and does
-not even register as a discrepancy. The rule above governs larger gaps.
+Two things changed in the RC, and both make the reading more honest:
+
+1. **A within-tolerance gap is no longer silently folded into VERIFIED.** It is a real
+   disagreement between two sources, and the reader is now told about it. Previously the ±1
+   tolerance made it invisible.
+2. **A beyond-tolerance gap is no longer given the benign online-first explanation.** A journal
+   publishes an article online in one year and in an issue the next; it does not publish it in an
+   issue five years later. Beyond the window the explanation does not reach, so the disagreement
+   is unexplained and the citation is not treated as confirmed.
+
+Required output whenever the year differs: `pubmed_year`, `crossref_year`, `year_gap`,
+`year_tolerance`, `discrepancy_type` (`ONLINE_FIRST_VS_ISSUE_YEAR`) and the source name for each
+year. **Neither year is ever replaced by the other.**
+
+## Both transports return the same semantics
+
+The remote MCP `verify_citation` tool and the local evidence layer implement the same table
+above, with the same author and journal comparators. A caller must never have to know which
+transport answered in order to interpret the verdict.
+
+Because a deployed server is not upgraded by editing its source, parity is additionally enforced
+at the point of use by `evidence/transport_reconcile.py`:
+
+- **The local layer is authoritative for the final citation state.** The remote tool is a
+  retrieval accelerator, never the last word — and the plugin already holds both underlying
+  records, because every record must be re-fetched locally for the retraction gate anyway.
+- A legacy server's year-only `NOT_VERIFIED` is recognised as a known transport-version pattern
+  and recomputed locally.
+- **Any divergence is reported, never silently resolved** — both verdicts are named in the search
+  log, because a transport-version difference is a property of the connection, not of the
+  citation.
 
 ## Verification components — always individually visible
 

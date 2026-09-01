@@ -138,6 +138,8 @@ class EvidencePipeline:
             "stage": RETRIEVAL, "connector_status": connector_status,
             "retrieved": len(self.records),
             "independent_studies": self.overlap_result["independent_study_count"],
+            "cohort_overlap": [a.to_dict() for a in self.overlap_result["cohort_assessments"]],
+            "cohort_assessment_coverage": self.overlap_result["cohort_assessment_coverage"],
             "note": ("A retrieval count is not an evidence count. "
                      f"{len(self.records)} records reduce to "
                      f"{self.overlap_result['independent_study_count']} independent studies "

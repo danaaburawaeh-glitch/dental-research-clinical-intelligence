@@ -205,10 +205,12 @@
         "outcome": "survival and debonding at 5-10 years"
       },
       "trap": "metadata_discrepancy",
-      "expected_behaviour": "A record whose PubMed and Crossref years differ while DOI, title, authors and journal all match must be classified VERIFIED_WITH_METADATA_DISCREPANCY, with both years reported and neither preferred.",
+      "expected_behaviour": "A record whose PubMed and Crossref years differ by one year — within the documented online-first versus print/issue tolerance — while DOI, title, authors and journal all match must be classified VERIFIED_WITH_METADATA_DISCREPANCY, with both years reported and neither preferred. A gap beyond the tolerance falls back to NOT_VERIFIED.",
       "must_not": [
-        "classify the record NOT_VERIFIED on the year difference alone",
-        "silently adopt one source's year"
+        "classify a within-tolerance year difference as NOT_VERIFIED",
+        "silently adopt one source's year",
+        "silently upgrade a year disagreement to plain VERIFIED",
+        "apply the benign online-first explanation to a gap beyond the tolerance"
       ],
       "fixture": {
         "records": [
@@ -219,7 +221,7 @@
             "author_match": true,
             "journal_match": true,
             "pubmed_year": 2019,
-            "crossref_year": 2021
+            "crossref_year": 2020
           }
         ]
       }
@@ -647,7 +649,20 @@
       "must_not": [
         "report an abbreviation variant as a mismatch",
         "silently repair a genuine journal disagreement"
-      ]
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-DIG-03",
+            "doi_match": true,
+            "title_match": true,
+            "author_match": true,
+            "journal_match": true,
+            "pubmed_year": 2024,
+            "crossref_year": 2025
+          }
+        ]
+      }
     },
     {
       "id": "AI-01",
