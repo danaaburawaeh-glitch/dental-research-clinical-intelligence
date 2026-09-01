@@ -42,6 +42,27 @@ def check(name, cond, detail=""):
     print(("PASS  " if cond else "FAIL  ") + name + (f"  [{detail}]" if detail and not cond else ""))
 
 
+def _pv_ledger():
+    led = ng.NumericLedger()
+    led.register(ng.NumericClaim("82.93%", ng.VERIFIED, source_record_id="PMID-NO-DOI",
+                                 citation_state=cv.PARTIALLY_VERIFIED, retrieved_this_session=True))
+    return led
+
+
+def _v_ledger():
+    led = ng.NumericLedger()
+    led.register(ng.NumericClaim("96.81%", ng.VERIFIED, source_record_id="FIXTURE-SR",
+                                 citation_state=cv.VERIFIED, retrieved_this_session=True))
+    return led
+
+
+def _rd_ledger():
+    led = ng.NumericLedger()
+    led.register(ng.NumericClaim("-0.16", ng.VERIFIED, source_record_id="FIXTURE-SR",
+                                 citation_state=cv.VERIFIED, retrieved_this_session=True))
+    return led
+
+
 def refuses(fn, exc=Exception):
     try:
         fn()
@@ -375,6 +396,20 @@ check("94 each rendered claim carries design, citation state, certainty and dire
       "Meta-analysis" in line.to_markdown() and "MODERATE" in line.to_markdown()
       and "DIRECT" in line.to_markdown())
 
+# Demotions must survive a render-then-validate call order, because that is the order a QC
+# harness naturally uses and the demotion record is what the audit reads.
+_dl = bl.ClinicalBottomLine("q")
+_weak = cl.EvidenceLinkedClaim("A helps.", "FIXTURE", cv.VERIFIED,
+                               sd.classify({"publication_types": ["Case Reports"]}),
+                               type("C", (), {"rating": ce.VERY_LOW})(),
+                               type("D", (), {"verdict": dr.PARTIALLY_DIRECT})())
+_dl.add(bl.WELL_ESTABLISHED, "A helps.", _weak)
+_rendered_first = _dl.to_markdown()
+check("133 a demotion is still reported when validate() runs after to_markdown()",
+      len(_dl.validate()["demotions"]) == 1)
+check("134 repeated validation does not duplicate a demotion",
+      len(_dl.validate()["demotions"]) == 1)
+
 # ══ Output modes ════════════════════════════════════════════════════════════════════════════
 print("\n── Output modes ──")
 
@@ -433,6 +468,49 @@ check("109 recency is used only as a tie-break among equals",
 check("110 a directness-driven tier inversion is reported, not hidden",
       rk.rank([rk.RankedItem("sr", "L2", ce.LOW, dr.INDIRECT, 2020),
                rk.RankedItem("coh", "L3", ce.MODERATE, dr.DIRECT, 2019)])["tier_inversions"])
+
+# ══ Numeric gate — effect-estimate coverage ═════════════════════════════════════════════════
+print("\n── Numeric gate coverage ──")
+
+check("116 a risk difference is detected as an effect estimate",
+      [f["kind"] for f in ng.scan("RD -0.16")] == ["risk difference"])
+check("117 a spelled-out risk difference is detected",
+      [f["kind"] for f in ng.scan("risk difference of -0.16")] == ["risk difference"])
+check("118 an unsourced risk difference fails the bottom-line gate",
+      ng.gate_bottom_line("The pooled risk difference was RD -0.16 favouring enamel.")["result"]
+      == ng.FAIL)
+check("119 absolute risk reduction is detected",
+      [f["kind"] for f in ng.scan("absolute risk reduction 0.09")] == ["absolute risk reduction"])
+check("120 number needed to treat is detected",
+      [f["kind"] for f in ng.scan("NNT 12")] == ["number needed to treat"])
+check("121 an ordinal is not mistaken for a risk difference",
+      not ng.scan("the 3rd molar"))
+check("122 a registered risk difference clears the gate",
+      ng.gate_bottom_line(
+          "Minimal dentin exposure reduced the need for intervention (RD -0.16).",
+          _rd_ledger())["result"] == ng.PASS)
+
+check("123 a figure from a PARTIALLY_VERIFIED source is permitted",
+      ng.gate_bottom_line("Survival was 82.93% at 20 years.", _pv_ledger())["result"] == ng.PASS)
+check("124 such a figure is reported as needing its uncorroborated status disclosed",
+      len(ng.gate_bottom_line("Survival was 82.93% at 20 years.", _pv_ledger())["disclosures"]) == 1)
+check("125 a figure from a VERIFIED source needs no disclosure",
+      not ng.gate_bottom_line("Survival was 96.81%.", _v_ledger())["disclosures"])
+check("126 a NOT_VERIFIED source still cannot carry a number",
+      refuses(lambda: ng.NumericClaim("9%", ng.VERIFIED, "x", cv.NOT_VERIFIED, True), ValueError))
+check("127 a RETRACTED source still cannot carry a number",
+      refuses(lambda: ng.NumericClaim("9%", ng.VERIFIED, "x", cv.RETRACTED, True), ValueError))
+check("128 the numeric gate and the citation layer agree on what is citable",
+      set(ng.CITATION_STATES_PERMITTING_NUMBERS) <= set(cv.CITABLE_STATES))
+
+check("129 an event count is not mistaken for a failure rate",
+      not ng.scan("6 of 7 failures occurred where veneers were bonded to dentin"))
+check("130 a study count is not mistaken for an effect estimate",
+      not ng.scan("Twenty-nine studies were included; 4 failures in 191 veneers"))
+check("131 a spelled-out rate is still caught",
+      [f["kind"] for f in ng.scan("95 percent survival at 10 years")] == ["survival/failure rate"])
+check("132 a named rate with its value is still caught",
+      [f["kind"] for f in ng.scan("the survival rate was 96.81")] == ["survival/failure rate"])
 
 # ══ Conflict ════════════════════════════════════════════════════════════════════════════════
 print("\n── Conflict ──")

@@ -56,6 +56,16 @@ Only **VERIFIED**, **USER-SUPPLIED** and **CALCULATED** figures may appear there
 **TYPICAL RANGE — VERIFY** figure may not: the Bottom Line is what a reader acts on, and a range
 awaiting confirmation is not something to act on.
 
+**Which citation states may carry a figure.** VERIFIED, VERIFIED_WITH_METADATA_DISCREPANCY,
+CORRECTED and PARTIALLY_VERIFIED. A PARTIALLY_VERIFIED source usually means the record carries no
+DOI, so no Crossref cross-check was possible — but Crossref returns bibliographic metadata only,
+never an abstract and never results, so requiring its corroboration before a figure may be quoted
+corroborates the *citation*, not the *number*. Excluding it would silence pre-DOI literature,
+which is much of the long-follow-up prosthodontic evidence, and would push figures out of the
+gated Bottom Line rather than making them safer. What is required instead is **disclosure**: the
+gate reports such figures under `disclosures`, and the output must state that the source citation
+is uncorroborated. NOT_VERIFIED and RETRACTED sources may never carry a figure.
+
 The gate additionally refuses, at construction:
 
 - a VERIFIED number with no named source record;

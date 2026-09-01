@@ -103,8 +103,17 @@ class ClinicalBottomLine:
 
     # ── Placement enforcement ───────────────────────────────────────────────────────────────
     def _check_placement(self):
-        """Move any claim into the section its evidence actually supports, and record why."""
-        demotions = []
+        """
+        Move any claim into the section its evidence actually supports, and record why.
+
+        Demotions ACCUMULATE across calls rather than being recomputed. A demoted claim is
+        physically moved out of its section, so a second call finds nothing left to move — and
+        with a per-call list, rendering before validating left `report["demotions"]` empty. A QC
+        caller reading that would conclude no claim had been moved, which is the opposite of what
+        happened and is precisely the record the "was a verified citation treated as strong
+        evidence?" audit depends on. (v1.2 real-world validation.)
+        """
+        demotions = list(self._demotions)
         for section in (WELL_ESTABLISHED, REASONABLY_SUPPORTED):
             requirement = SECTION_REQUIREMENTS[section]
             kept = []
@@ -128,6 +137,11 @@ class ClinicalBottomLine:
                         f"citation state is {claim.verification_state}, which this section does "
                         f"not accept")
                 if reasons:
+                    already = any(d["claim"] == claim.claim and d["from_section"] == section
+                                  for d in demotions)
+                    if already:
+                        kept.append(entry)
+                        continue
                     demotions.append({
                         "claim": claim.claim, "from_section": section, "to_section": UNCERTAIN,
                         "reasons": reasons,

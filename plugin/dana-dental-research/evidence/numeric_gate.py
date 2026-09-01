@@ -20,8 +20,9 @@ a registered NumericClaim whose source record is retrieved and whose citation st
 WHAT IS SCANNED
 ---------------
 The brief's list, plus the patterns those figures actually appear in:
-percentages · risk/odds/hazard ratios · mean and standard mean differences · confidence
-intervals · survival and failure rates · p-values attached to an effect.
+percentages · risk/odds/hazard ratios · risk differences and absolute risk reductions · mean and
+standard mean differences · numbers needed to treat · confidence intervals · survival and failure
+rates · p-values attached to an effect.
 
 Deliberately NOT flagged: study counts, participant counts, follow-up durations and years, which
 are extraction fields governed by `sr_extraction.py`'s provenance rules rather than effect
@@ -47,8 +48,27 @@ STATUSES = (VERIFIED, TYPICAL_RANGE_VERIFY, USER_SUPPLIED, CALCULATED)
 BOTTOM_LINE_PERMITTED = (VERIFIED, USER_SUPPLIED, CALCULATED)
 
 # Citation states in which a retrieved source may carry a number into the Bottom Line.
+#
+# PARTIALLY_VERIFIED is included, and that inclusion is deliberate (v1.2 real-world validation).
+# It was previously excluded, which had two problems. First, it contradicted the rest of the
+# system: PARTIALLY_VERIFIED is citable everywhere else (citation_verification.CITABLE_STATES,
+# claim_link), and no reference document imposed a stricter bar here. Second, and decisively, the
+# stricter bar protected nothing real. A PARTIALLY_VERIFIED state usually means the record carries
+# no DOI, so no Crossref cross-check was possible — but Crossref returns bibliographic metadata
+# only, never an abstract and never results. Requiring Crossref corroboration before a figure may
+# be quoted corroborates the CITATION, not the NUMBER; the number's provenance is the retrieved
+# PubMed record either way. The practical effect was that pre-DOI literature — much of the
+# long-follow-up veneer and prosthodontic evidence — could contribute no figure at all, which
+# pushes numbers out of the gated Bottom Line rather than making them safer.
+#
+# What is required instead is disclosure: a figure from an uncorroborated citation is permitted
+# and reported as needing its cap stated. See `uncorroborated` below and `gate_bottom_line`'s
+# `disclosures`.
 CITATION_STATES_PERMITTING_NUMBERS = (cv.VERIFIED, cv.VERIFIED_WITH_METADATA_DISCREPANCY,
-                                      cv.CORRECTED)
+                                      cv.CORRECTED, cv.PARTIALLY_VERIFIED)
+
+# States that carry a number but whose citation was never independently corroborated.
+UNCORROBORATED_CITATION_STATES = (cv.PARTIALLY_VERIFIED,)
 
 _NUM = r"[-+]?\d+(?:[.,]\d+)?"
 
@@ -64,9 +84,23 @@ EFFECT_PATTERNS = (
     ("odds ratio", re.compile(rf"\b(?:OR|odds ratio)\s*[=:]?\s*{_NUM}", re.I)),
     ("hazard ratio", re.compile(rf"\b(?:HR|hazard ratio)\s*[=:]?\s*{_NUM}", re.I)),
     ("mean difference", re.compile(rf"\b(?:SMD|MD|mean difference)\s*[=:]?\s*{_NUM}", re.I)),
+    # Risk difference, absolute risk reduction and number-needed-to-treat are effect estimates a
+    # reader acts on exactly as they act on a risk ratio. RD in particular is the primary effect
+    # measure of substrate and material comparisons in the veneer literature, so its absence here
+    # left the most decision-relevant figure in that field ungated. (v1.2 real-world validation.)
+    ("risk difference", re.compile(rf"\b(?:RD|risk difference)\s*(?:of\s*)?[=:]?\s*{_NUM}", re.I)),
+    ("absolute risk reduction", re.compile(
+        rf"\b(?:ARR|absolute risk (?:reduction|difference))\s*(?:of\s*)?[=:]?\s*{_NUM}", re.I)),
+    ("number needed to treat", re.compile(rf"\b(?:NNT|NNH)\s*[=:]?\s*{_NUM}", re.I)),
     ("p-value", re.compile(rf"\bp\s*[<>=]\s*{_NUM}", re.I)),
+    # Spelled-out rates only. The percent indicator (or the word "rate") is REQUIRED: with it
+    # optional, "6 of 7 failures" — a count of events, not a rate — matched as a failure rate.
+    # A gate that fires on plain event counts gets routed around, and a gate people route around
+    # is worse than no gate. Bare "95%" is already caught by the percentage pattern above.
     ("survival/failure rate", re.compile(
-        rf"{_NUM}\s*(?:per\s?cent|percent)?\s*(?:survival|failure|success)", re.I)),
+        rf"{_NUM}\s*(?:per\s?cent|percent)\s*(?:survival|failure|success)", re.I)),
+    ("survival/failure rate", re.compile(
+        rf"(?:survival|failure|success)\s+rate[^.;]{{0,24}}?{_NUM}", re.I)),
 )
 
 
@@ -109,13 +143,20 @@ class NumericClaim:
     def permitted_in_bottom_line(self):
         return self.status in BOTTOM_LINE_PERMITTED
 
+    @property
+    def uncorroborated(self):
+        """True when the figure's source citation was never independently cross-checked. The
+        figure may be used; the output must say so."""
+        return self.citation_state in UNCORROBORATED_CITATION_STATES
+
     def to_dict(self):
         return {"value": self.value, "status": self.status,
                 "source_record_id": self.source_record_id, "citation_state": self.citation_state,
                 "retrieved_this_session": self.retrieved_this_session,
                 "description": self.description, "calculation": self.calculation,
                 "source_field": self.source_field,
-                "permitted_in_bottom_line": self.permitted_in_bottom_line}
+                "permitted_in_bottom_line": self.permitted_in_bottom_line,
+                "uncorroborated": self.uncorroborated}
 
     def __repr__(self):
         return f"<NumericClaim {self.value!r} {self.status}>"
@@ -184,6 +225,7 @@ def gate_bottom_line(text, ledger=None):
     ledger = ledger or NumericLedger()
     findings = scan(text)
     failures = []
+    disclosures = []
     detailed = []
 
     for finding in findings:
@@ -204,7 +246,17 @@ def gate_bottom_line(text, ledger=None):
         else:
             entry = dict(finding, cleared=True, reason=None,
                          source_record_id=claim.source_record_id,
-                         status=claim.status, citation_state=claim.citation_state)
+                         status=claim.status, citation_state=claim.citation_state,
+                         uncorroborated=claim.uncorroborated)
+            if claim.uncorroborated:
+                disclosures.append({
+                    **entry,
+                    "disclosure": (
+                        f"{finding['literal']!r} comes from {claim.source_record_id}, whose "
+                        f"citation is {claim.citation_state} — retrieved, but never independently "
+                        f"cross-checked. The figure may be used; the output must state that its "
+                        f"source citation is uncorroborated."),
+                })
         detailed.append(entry)
 
     return {
@@ -212,6 +264,7 @@ def gate_bottom_line(text, ledger=None):
         "checked": len(findings),
         "findings": detailed,
         "failures": failures,
+        "disclosures": disclosures,
         "rule": ("No numerical claim may appear in a Clinical Bottom Line unless the source "
                  "containing that number was retrieved and verified this session. Numerical "
                  "values are never reconstructed from memory."),
