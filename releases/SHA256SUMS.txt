@@ -1,22 +1,2 @@
-ad394edc674c46e310f4f40625f88eb43fd3b0387bf1ca4f100378939d707d0e  dana-dental-research-clinical-intelligence-v1.1.0.plugin
-ad394edc674c46e310f4f40625f88eb43fd3b0387bf1ca4f100378939d707d0e  dana-dental-research-clinical-intelligence-v1.1.0.zip
-
-# Dental Research & Clinical Intelligence by Dr. Dana — v1.1.0
-# Verify:  shasum -a 256 -c SHA256SUMS.txt
-# Windows: certutil -hashfile <file> SHA256
-#
-# v1.1.0 integrates the live Dental AI Research Remote MCP server
-# (https://dental-ai-research-mcp.onrender.com/mcp) as a second retrieval transport, declared in
-# the plugin's .mcp.json. The plugin-local Python connectors remain the fallback and are not
-# deprecated. No connector status changed — status is a property of the source, not the transport.
-# The mandatory retraction gate is not waived: remote-MCP records carry no retraction metadata, so
-# a record backing a clinical claim is re-fetched over the local connector for the gate, or is
-# marked retraction-status unchecked. No clinical logic, clinical safety rule, prompt,
-# treatment-planning rule, evidence hierarchy, governance rule or identity policy was changed, and
-# zero connector .py files were modified. Cochrane, Embase and Scopus remain NOT IMPLEMENTED on
-# both transports; SFDA remains NOT CONNECTED — AUTH REQUIRED.
-#
-# The .plugin and .zip are the same archive under two extensions and share a checksum.
-#
-# v1.0.1 and v1.0.2 artifacts and checksums are unchanged and remain published at their own
-# release tags.
+f6fa5c691bd9517602a51a1cffa30d65df924dd82e782123ba08c741228f7366  Dental_AI_v1.2.0.zip
+f6fa5c691bd9517602a51a1cffa30d65df924dd82e782123ba08c741228f7366  Dental_AI_v1.2.0.plugin
