@@ -1,9 +1,11 @@
 <!--
 REFERENCE-ID: evidence-quality-appraisal
-VERSION: 0.3
+VERSION: 1.2.0
 CANONICAL-OWNER: evidence-research
 SOURCE: authoritative M3 §7 (Google Drive 1Ati4WlYomswDa46LO7oy6E0wH6RSGVyNRjzRxydpYU8)
-LAST-SYNCHRONIZED: 2026-08-29
+LAST-SYNCHRONIZED: 2026-09-01
+v1.2: mandatory provenance on every appraised field, and tool-application refusal.
+Executable implementation: `evidence/appraisal.py`.
 This file did not exist in v0.2.1. Identified in M3_MIGRATION_AUDIT.md as the largest genuine
 content gap: the current plugin previously covered this in one line of evidence-research/SKILL.md.
 -->
@@ -14,6 +16,29 @@ Loaded by: evidence-research.
 
 **Do not equate study design with quality.** A well-designed cohort study can outweigh a poorly
 conducted RCT. Appraise, don't just classify.
+
+## Provenance on every field (v1.2)
+
+An appraisal form with fifteen fields invites completion. The temptation — for a language model
+as much as for a tired reviewer — is to fill a blank with something plausible: a sample size that
+sounds right for the design, a follow-up matching the abstract's framing, a risk-of-bias
+judgement extrapolated from the journal's reputation. Every one of those is an invention wearing
+the costume of an appraisal.
+
+So a field holds a value **and** the provenance of that value:
+
+| Label | Means |
+|---|---|
+| **REPORTED** | The source states it. Record where: abstract, full text, registry. |
+| **INFERRED** | Derived from something the source does state. The basis is **mandatory** and is stored; an INFERRED field without one is refused. |
+| **UNKNOWN** | Not established. The default for every field, and a complete answer requiring no apology. |
+
+**Never invent missing appraisal data.** `UNKNOWN` is not a gap to close before the appraisal is
+usable — it is the appraisal's most important output, because it is what the certainty engine
+reads to return NOT ASSESSABLE rather than quietly rating a body of evidence LOW.
+
+Completeness is reported as a count and a named list of what is missing, never as a percentage
+score: "9/14 complete" reads as a grade, while the list of missing fields is what a reader needs.
 
 ## For every consequential paper, assess where possible
 
@@ -36,6 +61,12 @@ conducted RCT. Appraise, don't just classify.
 **Do not invent scores.** If a formal appraisal tool is used, name it explicitly. Only apply a tool
 when the information it requires is actually available in the source — do not approximate a score
 from partial information and present it as if the tool had been properly applied.
+
+**v1.2 — this is enforced.** `evidence/appraisal.py`'s `risk_of_bias()` refuses to attach a tool
+name when the tool does not apply to the named design, or when the tool's own required domains
+were not supplied. Those are the two ways a tool name gets borrowed rather than earned. A
+structured judgement with no tool name is honest; a tool name over partial information is a
+fabricated credential, and the function says so in the note it attaches instead.
 
 Recognised tools, by purpose:
 - **RoB 2** — risk of bias in randomized trials

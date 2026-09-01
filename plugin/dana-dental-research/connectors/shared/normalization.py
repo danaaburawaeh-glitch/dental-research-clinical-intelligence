@@ -54,6 +54,30 @@ def years_match(year_a, year_b, allow_adjacent=True):
     return allow_adjacent and abs(year_a - year_b) == 1
 
 
+def surname(name):
+    """
+    Extract the surname from an author string, handling the two renderings the connectors
+    actually return.
+
+    PubMed renders an author surname-first with collapsed initials — "Smith J", "van der Berg AB".
+    Crossref renders given-name-first — "John Smith". Taking either end unconditionally is wrong
+    half the time: taking the last token turns "Smith J" into "J", which then matches no Crossref
+    surname at all, and a genuine citation is reported as an author mismatch. (v1.2 fix — this
+    was previously last-token-only, which systematically failed real PubMed x Crossref pairs.)
+
+    Trailing initials tokens (short, alphabetic, all-uppercase) are dropped, and the last of what
+    remains is the surname. That handles both renderings and compound surnames in either order:
+    "Smith J" and "John Smith" both give "smith"; "van der Berg AB" and "AB van der Berg" both
+    give "berg". Returns None for an empty input.
+    """
+    parts = str(name or "").replace(",", " ").split()
+    while len(parts) > 1 and len(parts[-1]) <= 3 and parts[-1].isalpha() and parts[-1].isupper():
+        parts.pop()
+    if not parts:
+        return None
+    return _fold(parts[-1])
+
+
 def authors_overlap(authors_a, authors_b, min_overlap=1):
     """
     Compare two author lists by surname only (given-name formatting varies wildly
@@ -63,12 +87,7 @@ def authors_overlap(authors_a, authors_b, min_overlap=1):
         return False
 
     def surnames(lst):
-        out = set()
-        for name in lst:
-            parts = name.strip().split()
-            if parts:
-                out.add(_fold(parts[-1]))
-        return out
+        return {s for s in (surname(name) for name in lst) if s}
 
     return len(surnames(authors_a) & surnames(authors_b)) >= min_overlap
 

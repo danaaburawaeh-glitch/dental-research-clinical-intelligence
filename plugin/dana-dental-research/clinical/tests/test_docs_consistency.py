@@ -159,7 +159,8 @@ check("27 no shipped doc still titled as a v0.3 index",
               for f in os.listdir(DOCS) if f.endswith(".md")))
 
 manifest = json.loads(read(PLUGIN, ".claude-plugin", "plugin.json"))
-check("28 manifest version is 1.1.0", manifest["version"] == "1.1.0", manifest["version"])
+check("28 manifest version is the 1.2.0 release", manifest["version"] == "1.2.0",
+      manifest["version"])
 check("29 manifest describes the connected set accurately",
       "~~clinical-trials" in manifest["description"]
       and "AUTH REQUIRED" in manifest["description"])

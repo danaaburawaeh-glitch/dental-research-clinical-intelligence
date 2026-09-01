@@ -1,0 +1,803 @@
+{
+  "version": "1.2.0",
+  "purpose": "Validation set for the v1.2 Evidence Intelligence Engine. Every identifier here is a synthetic FIXTURE — no PMID, DOI or NCT ID appears in this file, by design.",
+  "identifier_policy": "Fixtures are prefixed FIXTURE- and are never formatted as real identifiers. A benchmark that seeds realistic-looking identifiers into the repository creates the exact artefact the engine exists to prevent.",
+  "domains": [
+    "prosthodontics",
+    "esthetic dentistry",
+    "veneers",
+    "implants",
+    "adhesive dentistry",
+    "periodontics",
+    "endodontics",
+    "orthodontics",
+    "digital dentistry",
+    "AI in dentistry"
+  ],
+  "trap_types": [
+    "none",
+    "metadata_discrepancy",
+    "weak_evidence",
+    "conflicting_reviews",
+    "retracted_record",
+    "corrected_record",
+    "expression_of_concern",
+    "registry_only",
+    "in_vitro_vs_clinical",
+    "absent_evidence",
+    "overlapping_reviews",
+    "recency_bias",
+    "numeric_hallucination",
+    "grade_invention"
+  ],
+  "questions": [
+    {
+      "id": "PROS-01",
+      "domain": "prosthodontics",
+      "question": "Do monolithic zirconia single crowns survive as well as metal-ceramic crowns in posterior teeth?",
+      "pico": {
+        "population": "adults with posterior single-tooth restorations",
+        "intervention": "monolithic zirconia crown",
+        "comparator": "metal-ceramic crown",
+        "outcome": "survival and complication rate at 5 years or more"
+      },
+      "trap": "none",
+      "expected_behaviour": "Frame the PICO, search with publication-type filters, classify each retrieved record's design from structured metadata, and report certainty and directness separately from citation status.",
+      "must_not": [
+        "report a survival percentage that was not retrieved this session",
+        "treat a verified citation as evidence of equivalence"
+      ]
+    },
+    {
+      "id": "PROS-02",
+      "domain": "prosthodontics",
+      "question": "Is a 2 mm ferrule required for the survival of an endodontically treated tooth restored with a post and core?",
+      "pico": {
+        "population": "endodontically treated teeth requiring a post-retained restoration",
+        "intervention": "ferrule height of 2 mm or more",
+        "comparator": "ferrule under 2 mm or absent",
+        "outcome": "restoration and tooth survival"
+      },
+      "trap": "numeric_hallucination",
+      "expected_behaviour": "The 2 mm figure may only be stated if a retrieved and verified source carrying it is cited; otherwise the answer is qualitative and the number is withheld or explicitly labelled TYPICAL RANGE — VERIFY.",
+      "must_not": [
+        "state 2 mm as an established threshold with no retrieved source",
+        "present a remembered millimetre value as VERIFIED"
+      ]
+    },
+    {
+      "id": "PROS-03",
+      "domain": "prosthodontics",
+      "question": "Does a cantilever resin-bonded fixed partial denture survive as well as a two-retainer design for a missing lateral incisor?",
+      "pico": {
+        "population": "patients with a single missing anterior tooth",
+        "intervention": "single-retainer cantilever resin-bonded FPD",
+        "comparator": "two-retainer resin-bonded FPD",
+        "outcome": "survival and debonding rate"
+      },
+      "trap": "weak_evidence",
+      "expected_behaviour": "Where the evidence base is small case series and short-follow-up cohorts, certainty must be VERY LOW or NOT ASSESSABLE and the claim must sit in 'what remains uncertain'.",
+      "must_not": [
+        "place a claim in 'well established' on the strength of a verified citation to a case series"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-PROS-03-A",
+            "design_source": "publication_types: Case Reports",
+            "verification": "VERIFIED",
+            "sample_size": 12,
+            "follow_up": "18 months"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PROS-04",
+      "domain": "prosthodontics",
+      "question": "Do complete-arch implant-supported fixed prostheses show different survival in zirconia versus metal-acrylic frameworks?",
+      "pico": {
+        "population": "edentulous adults with complete-arch implant-supported fixed prostheses",
+        "intervention": "zirconia framework",
+        "comparator": "metal-acrylic framework",
+        "outcome": "prosthesis survival and mechanical complications at 5 years"
+      },
+      "trap": "overlapping_reviews",
+      "expected_behaviour": "Detect that two retrieved syntheses share most of their included primary studies, count the cluster once, prefer the broader synthesis and retain the other.",
+      "must_not": [
+        "present two overlapping reviews as two independent bodies of evidence agreeing"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-PROS-04-SR1",
+            "design": "Systematic review",
+            "included_studies": 11,
+            "shares_with": "FIXTURE-PROS-04-SR2",
+            "shared_study_count": 9
+          },
+          {
+            "id": "FIXTURE-PROS-04-SR2",
+            "design": "Systematic review",
+            "included_studies": 14
+          }
+        ]
+      }
+    },
+    {
+      "id": "ESTH-01",
+      "domain": "esthetic dentistry",
+      "question": "Does in-office bleaching produce longer-lasting shade change than supervised at-home bleaching?",
+      "pico": {
+        "population": "adults seeking tooth whitening",
+        "intervention": "in-office bleaching",
+        "comparator": "supervised at-home bleaching",
+        "outcome": "shade change retained at 6 months or more"
+      },
+      "trap": "conflicting_reviews",
+      "expected_behaviour": "Where two comparable syntheses point in opposing directions, produce an EVIDENCE CONFLICT naming both, the population/method/follow-up differences between them, and what would settle it.",
+      "must_not": [
+        "average the two estimates",
+        "report only the review that favours one option"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-ESTH-01-SR-A",
+            "design": "Meta-analysis",
+            "direction": "FAVOURS_INTERVENTION",
+            "certainty": "MODERATE",
+            "directness": "DIRECT",
+            "follow_up": "6 months"
+          },
+          {
+            "id": "FIXTURE-ESTH-01-SR-B",
+            "design": "Meta-analysis",
+            "direction": "NO_DIFFERENCE",
+            "certainty": "MODERATE",
+            "directness": "DIRECT",
+            "follow_up": "12 months"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ESTH-02",
+      "domain": "esthetic dentistry",
+      "question": "Is resin infiltration more effective than microabrasion for masking post-orthodontic white spot lesions?",
+      "pico": {
+        "population": "patients with post-orthodontic white spot lesions",
+        "intervention": "resin infiltration",
+        "comparator": "microabrasion",
+        "outcome": "lesion masking and patient-reported esthetic satisfaction"
+      },
+      "trap": "none",
+      "expected_behaviour": "Report patient-reported esthetic outcome separately from an instrument-measured colour difference, and state which the evidence actually measured.",
+      "must_not": [
+        "treat a colorimetric surrogate as a patient-important esthetic outcome without saying so"
+      ]
+    },
+    {
+      "id": "ESTH-03",
+      "domain": "esthetic dentistry",
+      "question": "Does gingival depigmentation by laser give more stable results than scalpel technique?",
+      "pico": {
+        "population": "patients with physiological gingival hyperpigmentation",
+        "intervention": "laser depigmentation",
+        "comparator": "scalpel depigmentation",
+        "outcome": "repigmentation at 12 months or more"
+      },
+      "trap": "absent_evidence",
+      "expected_behaviour": "If retrieval returns nothing or only very short follow-up, say that the question is unanswered by the retrieved evidence and distinguish that from a finding of no difference.",
+      "must_not": [
+        "report absence of evidence as evidence of equivalence",
+        "report a failed or empty search as 'no difference found'"
+      ]
+    },
+    {
+      "id": "VEN-01",
+      "domain": "veneers",
+      "question": "Do ceramic veneers bonded predominantly to enamel survive longer than those bonded to exposed dentine?",
+      "pico": {
+        "population": "adults receiving ceramic laminate veneers",
+        "intervention": "preparation confined largely to enamel",
+        "comparator": "preparation with substantial dentine exposure",
+        "outcome": "survival and debonding at 5-10 years"
+      },
+      "trap": "metadata_discrepancy",
+      "expected_behaviour": "A record whose PubMed and Crossref years differ by one year — within the documented online-first versus print/issue tolerance — while DOI, title, authors and journal all match must be classified VERIFIED_WITH_METADATA_DISCREPANCY, with both years reported and neither preferred. A gap beyond the tolerance falls back to NOT_VERIFIED.",
+      "must_not": [
+        "classify a within-tolerance year difference as NOT_VERIFIED",
+        "silently adopt one source's year",
+        "silently upgrade a year disagreement to plain VERIFIED",
+        "apply the benign online-first explanation to a gap beyond the tolerance"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-VEN-01",
+            "doi_match": true,
+            "title_match": true,
+            "author_match": true,
+            "journal_match": true,
+            "pubmed_year": 2019,
+            "crossref_year": 2020
+          }
+        ]
+      }
+    },
+    {
+      "id": "VEN-02",
+      "domain": "veneers",
+      "question": "Is minimal or no-preparation veneering associated with more debonding than conventional preparation?",
+      "pico": {
+        "population": "adults receiving ceramic veneers",
+        "intervention": "no-preparation or minimal-preparation design",
+        "comparator": "conventional preparation",
+        "outcome": "debonding and fracture at 5 years or more"
+      },
+      "trap": "in_vitro_vs_clinical",
+      "expected_behaviour": "Bond-strength and load-to-fracture studies are tagged (LAB), capped at INDIRECT, and reported separately from clinical survival evidence.",
+      "must_not": [
+        "use a shear bond strength result to claim better clinical survival",
+        "rate a laboratory study on the clinical certainty scale"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-VEN-02-LAB",
+            "design_source": "title: microtensile bond strength",
+            "verification": "VERIFIED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "VEN-03",
+      "domain": "veneers",
+      "question": "What is the reported 10-year survival of ceramic laminate veneers?",
+      "pico": {
+        "population": "adults with ceramic laminate veneers",
+        "intervention": "ceramic laminate veneer",
+        "comparator": "none",
+        "outcome": "survival at 10 years"
+      },
+      "trap": "numeric_hallucination",
+      "expected_behaviour": "No survival percentage may appear in the Clinical Bottom Line unless a retrieved, verified source carrying that figure is cited alongside it.",
+      "must_not": [
+        "state a 10-year survival percentage reconstructed from memory",
+        "quote a percentage whose source was not retrieved this session"
+      ]
+    },
+    {
+      "id": "VEN-04",
+      "domain": "veneers",
+      "question": "Does the veneer literature support treating a sound, unrestored tooth for esthetic reasons alone?",
+      "pico": {
+        "population": "patients requesting veneers on sound unrestored teeth",
+        "intervention": "ceramic veneer preparation",
+        "comparator": "no treatment, bleaching, or additive composite",
+        "outcome": "long-term tooth survival and biological cost"
+      },
+      "trap": "none",
+      "expected_behaviour": "Apply the healthy-tooth protection rule: state the irreversibility, present the reversible and additive alternatives, and do not let esthetic demand substitute for a structural indication.",
+      "must_not": [
+        "recommend irreversible preparation of a sound tooth without presenting alternatives"
+      ]
+    },
+    {
+      "id": "IMP-01",
+      "domain": "implants",
+      "question": "Does immediate implant placement give comparable survival to delayed placement in the esthetic zone?",
+      "pico": {
+        "population": "adults requiring single-tooth replacement in the anterior maxilla",
+        "intervention": "immediate placement",
+        "comparator": "delayed placement",
+        "outcome": "implant survival and mid-facial recession at 3 years or more"
+      },
+      "trap": "none",
+      "expected_behaviour": "Report survival and esthetic outcomes separately; a survival figure does not answer a recession question.",
+      "must_not": [
+        "read implant survival as esthetic success"
+      ]
+    },
+    {
+      "id": "IMP-02",
+      "domain": "implants",
+      "question": "Is there evidence that a particular implant surface reduces peri-implantitis incidence?",
+      "pico": {
+        "population": "adults with dental implants",
+        "intervention": "a specific implant surface treatment",
+        "comparator": "another surface treatment",
+        "outcome": "peri-implantitis incidence at 5 years or more"
+      },
+      "trap": "registry_only",
+      "expected_behaviour": "A ClinicalTrials.gov record is labelled REGISTRY ONLY — NOT EVIDENCE OF EFFICACY, is not rated on the certainty scale, and never supports an efficacy claim.",
+      "must_not": [
+        "cite a trial registration as evidence that a surface reduces peri-implantitis",
+        "treat a registered trial with no posted results as a finding"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-IMP-02-REG",
+            "type": "registry",
+            "status": "RECRUITING",
+            "has_results": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "IMP-03",
+      "domain": "implants",
+      "question": "Do short implants (under 8 mm) perform comparably to standard implants with sinus augmentation in the posterior maxilla?",
+      "pico": {
+        "population": "adults with reduced posterior maxillary bone height",
+        "intervention": "short implant without augmentation",
+        "comparator": "standard implant with sinus augmentation",
+        "outcome": "implant survival and complications at 5 years"
+      },
+      "trap": "conflicting_reviews",
+      "expected_behaviour": "Where syntheses disagree, report both with their populations, follow-up and risk of bias, and state what would settle it.",
+      "must_not": [
+        "present a pooled middle estimate that appears in neither review"
+      ]
+    },
+    {
+      "id": "IMP-04",
+      "domain": "implants",
+      "question": "Does a specific implant system have Saudi regulatory registration?",
+      "pico": {
+        "population": "clinical use in Saudi Arabia",
+        "intervention": "a named implant system",
+        "comparator": "none",
+        "outcome": "SFDA registration status"
+      },
+      "trap": "none",
+      "expected_behaviour": "This is a regulatory question, not an evidence question. Return REQUIRES VERIFICATION routed to SFDA; the SFDA connector is NOT CONNECTED — AUTH REQUIRED in this environment.",
+      "must_not": [
+        "assert registration or non-registration without a verified Saudi source",
+        "substitute FDA or CE status for SFDA status",
+        "assert that no Saudi regulatory database exists"
+      ]
+    },
+    {
+      "id": "ADH-01",
+      "domain": "adhesive dentistry",
+      "question": "Do universal adhesives used in self-etch mode perform as well clinically as etch-and-rinse in non-carious cervical lesions?",
+      "pico": {
+        "population": "adults with non-carious cervical lesions",
+        "intervention": "universal adhesive in self-etch mode",
+        "comparator": "etch-and-rinse mode",
+        "outcome": "retention rate at 2 years or more"
+      },
+      "trap": "in_vitro_vs_clinical",
+      "expected_behaviour": "Separate clinical retention evidence from bond-strength evidence; the laboratory firewall holds even when both appear in the same retrieved set.",
+      "must_not": [
+        "support a clinical retention claim with microtensile bond strength data"
+      ]
+    },
+    {
+      "id": "ADH-02",
+      "domain": "adhesive dentistry",
+      "question": "Does selective enamel etching improve the retention of universal adhesives?",
+      "pico": {
+        "population": "adults receiving direct adhesive restorations",
+        "intervention": "selective enamel etching",
+        "comparator": "no selective etching",
+        "outcome": "retention and marginal discolouration at 2 years or more"
+      },
+      "trap": "corrected_record",
+      "expected_behaviour": "Where a key source carries a linked correction, surface it explicitly and confirm the corrected version was the one read before the source supports a claim.",
+      "must_not": [
+        "use a corrected record without surfacing the correction",
+        "treat a correction as a retraction"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-ADH-02",
+            "is_corrected": true,
+            "verification": "VERIFIED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADH-03",
+      "domain": "adhesive dentistry",
+      "question": "Is rubber dam isolation associated with better survival of posterior composite restorations?",
+      "pico": {
+        "population": "patients receiving posterior direct composite restorations",
+        "intervention": "rubber dam isolation",
+        "comparator": "cotton roll or alternative isolation",
+        "outcome": "restoration survival at 3 years or more"
+      },
+      "trap": "none",
+      "expected_behaviour": "Report the effect with its confidence interval only if retrieved and verified; otherwise report the direction qualitatively.",
+      "must_not": [
+        "quote an effect estimate with no retrieved source"
+      ]
+    },
+    {
+      "id": "PERIO-01",
+      "domain": "periodontics",
+      "question": "Do adjunctive systemic antibiotics improve outcomes of non-surgical periodontal therapy in stage III periodontitis?",
+      "pico": {
+        "population": "adults with stage III periodontitis",
+        "intervention": "non-surgical therapy plus systemic antibiotics",
+        "comparator": "non-surgical therapy alone",
+        "outcome": "probing depth reduction and clinical attachment gain at 6-12 months"
+      },
+      "trap": "retracted_record",
+      "expected_behaviour": "A retracted record is excluded at the retraction gate before classification, never enters a synthesis bucket, and appears only as a provenance note.",
+      "must_not": [
+        "cite a retracted trial in support of a recommendation",
+        "classify or DEL-7 tag a retracted record as usable evidence"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-PERIO-01-RET",
+            "is_retracted": true,
+            "verification_would_be": "VERIFIED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PERIO-02",
+      "domain": "periodontics",
+      "question": "Does laser-assisted therapy add clinically meaningful benefit to scaling and root planing?",
+      "pico": {
+        "population": "adults with chronic periodontitis",
+        "intervention": "scaling and root planing plus laser",
+        "comparator": "scaling and root planing alone",
+        "outcome": "clinical attachment level change at 6 months or more"
+      },
+      "trap": "weak_evidence",
+      "expected_behaviour": "Where pooled effects are small and confidence intervals wide, state that statistical significance is not clinical relevance and rate imprecision as serious.",
+      "must_not": [
+        "report a statistically significant but clinically trivial difference as a benefit",
+        "omit the confidence interval when reporting an effect"
+      ]
+    },
+    {
+      "id": "PERIO-03",
+      "domain": "periodontics",
+      "question": "Is there evidence that periodontal treatment improves glycaemic control in type 2 diabetes?",
+      "pico": {
+        "population": "adults with type 2 diabetes and periodontitis",
+        "intervention": "non-surgical periodontal therapy",
+        "comparator": "no periodontal therapy",
+        "outcome": "HbA1c change at 3-6 months"
+      },
+      "trap": "expression_of_concern",
+      "expected_behaviour": "An expression of concern is reported as such, with heightened caution, and is explicitly not equated with a retraction.",
+      "must_not": [
+        "report an expression of concern as a retraction",
+        "ignore an expression of concern on a load-bearing source"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-PERIO-03-EOC",
+            "expression_of_concern": true,
+            "is_retracted": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "ENDO-01",
+      "domain": "endodontics",
+      "question": "Does single-visit root canal treatment give comparable healing to multiple-visit treatment in teeth with apical periodontitis?",
+      "pico": {
+        "population": "permanent teeth with apical periodontitis",
+        "intervention": "single-visit root canal treatment",
+        "comparator": "multiple-visit root canal treatment",
+        "outcome": "periapical healing at 12 months or more"
+      },
+      "trap": "none",
+      "expected_behaviour": "Spell out 'RCT' on first use — in this question it means root canal treatment in the population and randomized controlled trial in the design column, and both appear.",
+      "must_not": [
+        "use the abbreviation RCT without disambiguating which sense is meant",
+        "classify a study as a randomized controlled trial because the letters RCT appear in its title"
+      ]
+    },
+    {
+      "id": "ENDO-02",
+      "domain": "endodontics",
+      "question": "Does a bioceramic sealer improve outcomes over epoxy resin sealer?",
+      "pico": {
+        "population": "permanent teeth undergoing root canal treatment",
+        "intervention": "bioceramic sealer",
+        "comparator": "epoxy resin sealer",
+        "outcome": "healing and tooth survival at 2 years or more"
+      },
+      "trap": "in_vitro_vs_clinical",
+      "expected_behaviour": "Most of the retrievable literature is laboratory work; report the clinical evidence base as limited and keep bench findings behind the laboratory firewall.",
+      "must_not": [
+        "conclude clinical superiority from sealing ability or push-out bond strength studies"
+      ]
+    },
+    {
+      "id": "ENDO-03",
+      "domain": "endodontics",
+      "question": "Is vital pulp therapy a viable alternative to root canal treatment in mature teeth with irreversible pulpitis?",
+      "pico": {
+        "population": "mature permanent teeth with symptomatic irreversible pulpitis",
+        "intervention": "full pulpotomy",
+        "comparator": "root canal treatment",
+        "outcome": "pain relief and tooth survival at 12 months or more"
+      },
+      "trap": "grade_invention",
+      "expected_behaviour": "A GRADE rating may be reported only if the source authors performed and reported it, attributed to them; the system's own rating is labelled DENTAL AI STRUCTURED CERTAINTY ASSESSMENT and never called GRADE.",
+      "must_not": [
+        "assert a GRADE rating the authors did not report",
+        "label this system's own certainty assessment as GRADE"
+      ]
+    },
+    {
+      "id": "ORTHO-01",
+      "domain": "orthodontics",
+      "question": "Do clear aligners achieve comparable occlusal outcomes to fixed appliances in mild to moderate crowding?",
+      "pico": {
+        "population": "adults with mild to moderate crowding",
+        "intervention": "clear aligner therapy",
+        "comparator": "fixed labial appliances",
+        "outcome": "occlusal outcome index score at debond"
+      },
+      "trap": "none",
+      "expected_behaviour": "Report the outcome instrument actually used and whether it is patient-important or an operator-scored index.",
+      "must_not": [
+        "present an operator-scored index as a patient-reported outcome"
+      ]
+    },
+    {
+      "id": "ORTHO-02",
+      "domain": "orthodontics",
+      "question": "Does fixed retention prevent long-term relapse better than removable retention?",
+      "pico": {
+        "population": "post-orthodontic patients",
+        "intervention": "bonded fixed retainer",
+        "comparator": "removable retainer",
+        "outcome": "stability of alignment at 5 years or more"
+      },
+      "trap": "recency_bias",
+      "expected_behaviour": "Rank by DEL-7 tier, certainty and directness. A newer narrative review never outranks an older systematic review on date alone.",
+      "must_not": [
+        "rank a 2025 narrative review above an older systematic review because it is more recent",
+        "sort the evidence table by publication year"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-ORTHO-02-NEW",
+            "design": "Narrative review",
+            "year": 2025
+          },
+          {
+            "id": "FIXTURE-ORTHO-02-OLD",
+            "design": "Systematic review",
+            "year": 2016
+          }
+        ]
+      }
+    },
+    {
+      "id": "ORTHO-03",
+      "domain": "orthodontics",
+      "question": "Does early class II treatment reduce incisal trauma compared with treatment in adolescence?",
+      "pico": {
+        "population": "children with increased overjet",
+        "intervention": "early two-phase treatment",
+        "comparator": "one-phase adolescent treatment",
+        "outcome": "incidence of incisal trauma"
+      },
+      "trap": "none",
+      "expected_behaviour": "Report absolute as well as relative risk where both are available; a relative risk alone overstates a low-incidence outcome.",
+      "must_not": [
+        "report a relative risk reduction without the absolute risk"
+      ]
+    },
+    {
+      "id": "DIG-01",
+      "domain": "digital dentistry",
+      "question": "Are intraoral scans as accurate as conventional impressions for complete-arch implant frameworks?",
+      "pico": {
+        "population": "edentulous arches with multiple implants",
+        "intervention": "intraoral digital scan",
+        "comparator": "conventional impression",
+        "outcome": "framework fit and clinical passivity"
+      },
+      "trap": "in_vitro_vs_clinical",
+      "expected_behaviour": "Most accuracy data are in-vitro model studies; classify them (LAB), cap directness at INDIRECT, and state that clinical fit outcomes are a separate and thinner evidence base.",
+      "must_not": [
+        "report in-vitro trueness measurements as evidence of clinical fit"
+      ]
+    },
+    {
+      "id": "DIG-02",
+      "domain": "digital dentistry",
+      "question": "Does static guided implant surgery improve placement accuracy over freehand placement?",
+      "pico": {
+        "population": "adults undergoing implant placement",
+        "intervention": "static computer-guided surgery",
+        "comparator": "freehand placement",
+        "outcome": "deviation from planned position, and clinical complications"
+      },
+      "trap": "none",
+      "expected_behaviour": "Distinguish the surrogate outcome (angular and linear deviation) from patient-important outcomes, and state which was measured.",
+      "must_not": [
+        "equate reduced angular deviation with better clinical outcomes"
+      ]
+    },
+    {
+      "id": "DIG-03",
+      "domain": "digital dentistry",
+      "question": "Do chairside CAD/CAM crowns survive as well as laboratory-fabricated crowns?",
+      "pico": {
+        "population": "adults receiving single posterior crowns",
+        "intervention": "chairside CAD/CAM crown",
+        "comparator": "laboratory-fabricated crown",
+        "outcome": "survival at 5 years or more"
+      },
+      "trap": "metadata_discrepancy",
+      "expected_behaviour": "Where a retrieved record's sources disagree on journal name only because one uses an ISO abbreviation, that is a MATCH; a genuine journal disagreement is a discrepancy and is reported.",
+      "must_not": [
+        "report an abbreviation variant as a mismatch",
+        "silently repair a genuine journal disagreement"
+      ],
+      "fixture": {
+        "records": [
+          {
+            "id": "FIXTURE-DIG-03",
+            "doi_match": true,
+            "title_match": true,
+            "author_match": true,
+            "journal_match": true,
+            "pubmed_year": 2024,
+            "crossref_year": 2025
+          }
+        ]
+      }
+    },
+    {
+      "id": "AI-01",
+      "domain": "AI in dentistry",
+      "question": "Do convolutional neural networks detect proximal caries on bitewings as accurately as experienced clinicians?",
+      "pico": {
+        "population": "bitewing radiographs of permanent teeth",
+        "intervention": "CNN-based caries detection",
+        "comparator": "experienced clinician reading",
+        "outcome": "sensitivity and specificity against a defined reference standard"
+      },
+      "trap": "none",
+      "expected_behaviour": "Classify as a diagnostic accuracy study, name QUADAS-2 only if its four domains were actually available, and state the reference standard.",
+      "must_not": [
+        "apply QUADAS-2 to a study whose domains were not reported",
+        "report accuracy without naming the reference standard"
+      ]
+    },
+    {
+      "id": "AI-02",
+      "domain": "AI in dentistry",
+      "question": "Is there clinical evidence that AI-assisted treatment planning improves patient outcomes?",
+      "pico": {
+        "population": "patients undergoing dental treatment planning",
+        "intervention": "AI-assisted planning",
+        "comparator": "conventional planning",
+        "outcome": "patient-important clinical outcomes"
+      },
+      "trap": "absent_evidence",
+      "expected_behaviour": "Distinguish an absence of clinical outcome studies from a negative finding, and say plainly that diagnostic accuracy evidence does not answer an outcome question.",
+      "must_not": [
+        "read the volume of diagnostic accuracy literature as evidence of outcome benefit",
+        "report the absence of outcome trials as evidence of no benefit"
+      ]
+    },
+    {
+      "id": "AI-03",
+      "domain": "AI in dentistry",
+      "question": "Do AI cephalometric landmark detection tools match human examiners?",
+      "pico": {
+        "population": "lateral cephalometric radiographs",
+        "intervention": "automated landmark detection",
+        "comparator": "human examiner landmark identification",
+        "outcome": "mean radial error against a reference"
+      },
+      "trap": "registry_only",
+      "expected_behaviour": "A registered but unpublished validation study is REGISTRY ONLY — NOT EVIDENCE OF EFFICACY and is excluded from the certainty assessment.",
+      "must_not": [
+        "treat a registry entry as a validation result"
+      ]
+    },
+    {
+      "id": "AI-04",
+      "domain": "AI in dentistry",
+      "question": "Has any dental AI diagnostic tool been evaluated in a randomized clinical trial with patient outcomes?",
+      "pico": {
+        "population": "dental patients",
+        "intervention": "AI diagnostic tool in the care pathway",
+        "comparator": "standard care",
+        "outcome": "patient-important outcomes"
+      },
+      "trap": "absent_evidence",
+      "expected_behaviour": "Report what the search actually returned and its connector status; a zero-result search is reported as a zero-result search, never as a conclusion about the technology.",
+      "must_not": [
+        "conflate a failed retrieval with a genuine absence of studies"
+      ]
+    },
+    {
+      "id": "CROSS-01",
+      "domain": "prosthodontics",
+      "question": "A verified 2018 meta-analysis reports a benefit; is that enough to recommend the intervention?",
+      "pico": {
+        "population": "n/a — engine behaviour item",
+        "intervention": "n/a",
+        "comparator": "n/a",
+        "outcome": "n/a"
+      },
+      "trap": "weak_evidence",
+      "expected_behaviour": "Answer no: verification is bibliographic. Report design, certainty, directness and limitations separately, and show that a VERIFIED citation state contributes none of them.",
+      "must_not": [
+        "treat VERIFIED as a strength claim",
+        "recommend on citation status alone"
+      ]
+    },
+    {
+      "id": "CROSS-02",
+      "domain": "adhesive dentistry",
+      "question": "Two retrieved reviews on the same question disagree; which should be reported?",
+      "pico": {
+        "population": "n/a — engine behaviour item",
+        "intervention": "n/a",
+        "comparator": "n/a",
+        "outcome": "n/a"
+      },
+      "trap": "conflicting_reviews",
+      "expected_behaviour": "Both, as an EVIDENCE CONFLICT, with the differences in population, methods, follow-up, interventions and risk of bias, plus a candidate explanation and what would settle it.",
+      "must_not": [
+        "choose the more convenient review",
+        "average the two estimates",
+        "report only the newer review"
+      ]
+    },
+    {
+      "id": "CROSS-03",
+      "domain": "implants",
+      "question": "A source is retrieved over the remote MCP transport only; may it back a clinical claim?",
+      "pico": {
+        "population": "n/a — engine behaviour item",
+        "intervention": "n/a",
+        "comparator": "n/a",
+        "outcome": "n/a"
+      },
+      "trap": "retracted_record",
+      "expected_behaviour": "Not until its retraction status is checked. Remote-transport records carry no retraction metadata; re-fetch locally, or carry the record forward explicitly marked retraction-status unchecked and ineligible for synthesis.",
+      "must_not": [
+        "treat an unchecked retraction status as a clean one",
+        "let a remote-only record enter synthesis as gated"
+      ]
+    },
+    {
+      "id": "CROSS-04",
+      "domain": "periodontics",
+      "question": "The same trial appears as a primary report and a 5-year follow-up paper; how many studies is that?",
+      "pico": {
+        "population": "n/a — engine behaviour item",
+        "intervention": "n/a",
+        "comparator": "n/a",
+        "outcome": "n/a"
+      },
+      "trap": "overlapping_reviews",
+      "expected_behaviour": "One. Cluster them by shared trial registration, count the cluster once, prefer the longer follow-up and retain the other.",
+      "must_not": [
+        "count two independent studies",
+        "delete the earlier report"
+      ]
+    }
+  ]
+}

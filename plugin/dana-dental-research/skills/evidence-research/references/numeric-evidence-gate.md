@@ -1,11 +1,13 @@
 <!--
 REFERENCE-ID: numeric-evidence-gate
-VERSION: 0.2.1
+VERSION: 1.2.0
 CANONICAL-OWNER: clinical-governance (see /ARCHITECTURE_REFERENCE_MAP.md for the full owner/consumer table)
-LAST-SYNCHRONIZED: 2026-08-28
+LAST-SYNCHRONIZED: 2026-09-01
 This file is a bundled copy. Edit only at the canonical owner location and re-sync all bundles
 in the same change; do not hand-edit a consumer copy independently (see Step 3, canonical
 source policy).
+v1.2: added the Clinical Bottom Line rule and the executable gate
+(`evidence/numeric_gate.py`). The four statuses are unchanged.
 -->
 
 # Numeric Evidence Gate
@@ -38,6 +40,43 @@ material/system (TYPICAL RANGE — VERIFY against the specific product/protocol 
 clinical use); it is not a universal value."
 Any preparation-depth, thickness, or similar value requires VERIFIED or TYPICAL RANGE — VERIFY
 status before being stated — never a bare figure presented as settled fact.
+
+## The Clinical Bottom Line rule (v1.2)
+
+No numerical claim — **survival %, failure %, risk ratio, odds ratio, hazard ratio, mean
+difference, confidence interval** — may appear in a Clinical Bottom Line unless the source
+containing that number was **retrieved and verified this session**.
+
+Numerical values are never reconstructed from memory. "Veneer survival is approximately 95% at 10
+years" is the most fluent sentence available on the subject: well-formed, roughly consistent with
+the literature, and producible with no source at all. A rule competing against that fluency loses;
+a gate that scans the finished text does not.
+
+Only **VERIFIED**, **USER-SUPPLIED** and **CALCULATED** figures may appear there. A
+**TYPICAL RANGE — VERIFY** figure may not: the Bottom Line is what a reader acts on, and a range
+awaiting confirmation is not something to act on.
+
+**Which citation states may carry a figure.** VERIFIED, VERIFIED_WITH_METADATA_DISCREPANCY,
+CORRECTED and PARTIALLY_VERIFIED. A PARTIALLY_VERIFIED source usually means the record carries no
+DOI, so no Crossref cross-check was possible — but Crossref returns bibliographic metadata only,
+never an abstract and never results, so requiring its corroboration before a figure may be quoted
+corroborates the *citation*, not the *number*. Excluding it would silence pre-DOI literature,
+which is much of the long-follow-up prosthodontic evidence, and would push figures out of the
+gated Bottom Line rather than making them safer. What is required instead is **disclosure**: the
+gate reports such figures under `disclosures`, and the output must state that the source citation
+is uncorroborated. NOT_VERIFIED and RETRACTED sources may never carry a figure.
+
+The gate additionally refuses, at construction:
+
+- a VERIFIED number with no named source record;
+- a VERIFIED number whose source was not retrieved this session;
+- any number carried by a RETRACTED source;
+- a CALCULATED number that does not show its calculation.
+
+**Executable:** `evidence/numeric_gate.py` — `scan()`, `gate_bottom_line()`, `NumericLedger`.
+Study counts, participant totals and follow-up durations are not effect estimates and are
+governed instead by the provenance rules in `evidence/appraisal.py` and
+`evidence/sr_extraction.py`; `check_extraction_numbers()` covers them.
 
 ## QC check
 Every consequential number in a final output must be traceable to A/B/C/D above. If a number cannot
