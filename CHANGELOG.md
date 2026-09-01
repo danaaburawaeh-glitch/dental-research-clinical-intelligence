@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.1.0 — remote MCP integration
+
+Added:
+
+- The live **Dental AI Research Remote MCP** server (`dental-ai-research`,
+  `https://dental-ai-research-mcp.onrender.com/mcp`, streamable HTTP, no auth) is declared in the
+  plugin's `.mcp.json` and is now the preferred retrieval transport for `~~literature`,
+  `~~systematic-reviews`, `~~journal-access` and `~~clinical-trials`. The plugin-local Python
+  connectors remain the fallback and are not deprecated.
+- `skills/evidence-research/references/retrieval-transports.md` — new canonical rules separating a
+  *source* (what evidence comes from) from a *transport* (how the plugin reaches it), with the
+  transport-selection order and the verified behavioural differences between the two.
+- Eleven new consistency checks (35–45) holding the integration to those rules, including the
+  runtime tool-naming rule found by the fresh-install validation.
+
+Unchanged:
+
+- No connector status changed — status is a property of the source, not the transport. A missing or
+  failing transport is a retrieval failure, never a `NOT CONNECTED` downgrade.
+- The mandatory retraction gate is not waived: remote-MCP records carry no retraction/correction
+  metadata, so a record backing a clinical claim is re-fetched over the local connector for the
+  gate, or is marked retraction-status unchecked and cannot be presented as synthesis-eligible.
+- Both transports call the same upstream APIs, so agreement between them is one retrieval, never
+  independent corroboration.
+- Cochrane, Embase and Scopus remain **not implemented** on both transports; SFDA remains
+  **not connected — auth required**. No clinical logic, safety, governance or identity change.
+  Zero connector `.py` files modified.
+
+Full notes: [`docs/RELEASE_NOTES_v1.1.0.md`](docs/RELEASE_NOTES_v1.1.0.md)
+
 ## v1.0.2 — connector detection & path resolution patch
 
 Fixed:

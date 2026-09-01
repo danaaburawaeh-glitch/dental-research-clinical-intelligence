@@ -62,7 +62,7 @@ registered.
 claude plugin list
 ```
 
-`dana-dental-research` should appear as **version 1.0.2**, scope `user`, status **enabled**.
+`dana-dental-research` should appear as **version 1.1.0**, scope `user`, status **enabled**.
 
 Then inspect what was installed:
 
@@ -206,8 +206,8 @@ for production use — the installed plugin then depends on a directory you migh
 
 `releases/` contains:
 
-- `dana-dental-research-clinical-intelligence-v1.0.2.plugin`
-- `dana-dental-research-clinical-intelligence-v1.0.2.zip`
+- `dana-dental-research-clinical-intelligence-v1.1.0.plugin`
+- `dana-dental-research-clinical-intelligence-v1.1.0.zip`
 
 Both are the same archive under different extensions. Verify a download before using it:
 

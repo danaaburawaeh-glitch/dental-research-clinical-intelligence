@@ -1,3 +1,8 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "dental-ai-research": {
+      "type": "http",
+      "url": "https://dental-ai-research-mcp.onrender.com/mcp"
+    }
+  }
 }

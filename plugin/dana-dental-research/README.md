@@ -2,7 +2,7 @@
 
 Clinical decision support and scientific/academic support for dentistry, governed by CORE V0.4.
 
-**Internal plugin identifier:** `dana-dental-research` · **Version:** 1.0.0
+**Internal plugin identifier:** `dana-dental-research` · **Version:** 1.1.0
 
 ## What it does
 
@@ -38,6 +38,21 @@ rather than a degraded answer.
 | `~~regulatory-saudi` | NOT CONNECTED — AUTH REQUIRED |
 
 Crossref provides metadata and citation verification only — never full text.
+
+### Retrieval transports (v1.1.0)
+
+Status above describes the **source**. It is reached over either of two **transports**:
+
+| Transport | What | Covers |
+|---|---|---|
+| Remote MCP — `dental-ai-research` (`.mcp.json`, `https://dental-ai-research-mcp.onrender.com/mcp`, streamable HTTP, no auth) | `search_pubmed`, `search_systematic_reviews`, `verify_citation`, `search_clinical_trials` | `~~literature`, `~~systematic-reviews`, `~~journal-access`, `~~clinical-trials` |
+| Plugin-local Python CLIs via the Bash tool | `connectors/*/client.py` | the same four, plus record fetch, trial fetch, the executable retraction gate, dedup, trial↔publication linkage, SFDA |
+
+The remote transport is preferred when available; the local connectors are the fallback and are
+**not** deprecated. Both hit the same upstream APIs, so agreement between them is one retrieval,
+not independent corroboration. The remote tools return no retraction/correction metadata, so the
+mandatory retraction gate still runs over the local connectors. Rules:
+`skills/evidence-research/references/retrieval-transports.md`.
 
 ## What it is not
 

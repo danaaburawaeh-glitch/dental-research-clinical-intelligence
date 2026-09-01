@@ -7,7 +7,7 @@ claude plugin marketplace add danaaburawaeh-glitch/dental-research-clinical-inte
 claude plugin install dana-dental-research@dana-dental
 ```
 
-Verify with `claude plugin list` (expect v1.0.2, enabled) and
+Verify with `claude plugin list` (expect v1.1.0, enabled) and
 `claude plugin details dana-dental-research` (expect 9 skills).
 
 Full instructions: [INSTALLATION.md](INSTALLATION.md)

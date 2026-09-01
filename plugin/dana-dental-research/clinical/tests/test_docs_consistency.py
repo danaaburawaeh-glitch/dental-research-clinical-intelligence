@@ -159,7 +159,7 @@ check("27 no shipped doc still titled as a v0.3 index",
               for f in os.listdir(DOCS) if f.endswith(".md")))
 
 manifest = json.loads(read(PLUGIN, ".claude-plugin", "plugin.json"))
-check("28 manifest version is 1.0.2", manifest["version"] == "1.0.2", manifest["version"])
+check("28 manifest version is 1.1.0", manifest["version"] == "1.1.0", manifest["version"])
 check("29 manifest describes the connected set accurately",
       "~~clinical-trials" in manifest["description"]
       and "AUTH REQUIRED" in manifest["description"])
@@ -175,6 +175,68 @@ check("33 README connector table matches the current state",
 check("34 README does not describe Crossref as full text",
       "full text" in read(PLUGIN, "README.md")
       and "never full text" in read(PLUGIN, "README.md"))
+
+# ── 8. Remote MCP transport (v1.1.0) ───────────────────────────────────────
+MCP_URL = "https://dental-ai-research-mcp.onrender.com/mcp"
+MCP_SERVER = "dental-ai-research"
+mcp = json.loads(read(PLUGIN, ".mcp.json"))
+srv = mcp.get("mcpServers", {}).get(MCP_SERVER, {})
+check("35 remote MCP server declared in .mcp.json",
+      srv.get("type") == "http" and srv.get("url") == MCP_URL, str(mcp))
+check("36 transport rules reference exists and is loaded by evidence-research",
+      os.path.exists(os.path.join(SKILLS, "evidence-research", "references",
+                                  "retrieval-transports.md"))
+      and "retrieval-transports.md" in read(SKILLS, "evidence-research", "SKILL.md"))
+check("37 start no longer claims the bundled .mcp.json is empty as current state",
+      "empty by design" not in read(SKILLS, "start", "SKILL.md").split("(Historical note:")[0])
+TRANSPORTS = read(SKILLS, "evidence-research", "references", "retrieval-transports.md")
+check("38 transport doc states MCP adds no source and changes no status",
+      "does NOT change any connector's CONNECTED status" in TRANSPORTS
+      or "changes NO status" in TRANSPORTS
+      or "adds no new source" in read(SKILLS, "evidence-research", "SKILL.md"))
+check("39 retraction gate is not waived by the MCP transport",
+      "retraction-status unchecked" in TRANSPORTS
+      and "retraction-status unchecked" in read(SKILLS, "evidence-research", "SKILL.md"))
+check("40 the two transports are not presented as independent corroboration",
+      "not independent corroboration" in TRANSPORTS
+      or "never independent corroboration" in TRANSPORTS)
+check("41 capability map records the MCP transport on both copies",
+      all(MCP_URL in read(SKILLS, s, "references", "connector-capability-map.md")
+          for s in ("start", "evidence-research")))
+check("42 Cochrane/Embase/Scopus still NOT IMPLEMENTED on the MCP transport",
+      "NOT IMPLEMENTED" in TRANSPORTS and "Cochrane" in TRANSPORTS)
+
+# Naming defect caught by the v1.1.0 fresh-install validation: Claude Code registers a
+# plugin-provided MCP server as `plugin:<plugin>:<server>` and builds the tool prefix from THAT,
+# not from the bare server name. A skill checking `mcp__dental-ai-research__*` would find nothing
+# and silently fall back to the local connectors.
+RUNTIME_PREFIX = "mcp__plugin_dana-dental-research_dental-ai-research__"
+ROUTING_DOCS = {
+    "evidence-research/SKILL.md": read(SKILLS, "evidence-research", "SKILL.md"),
+    "start/SKILL.md": read(SKILLS, "start", "SKILL.md"),
+    "retrieval-transports.md": TRANSPORTS,
+    "safe-search-gateway": read(SKILLS, "evidence-research", "references",
+                                "clinical-evidence-safe-search-gateway.md"),
+    "capability-map(start)": read(SKILLS, "start", "references",
+                                  "connector-capability-map.md"),
+    "capability-map(er)": read(SKILLS, "evidence-research", "references",
+                               "connector-capability-map.md"),
+}
+bad_prefix = [n for n, d in ROUTING_DOCS.items()
+              if "mcp__dental-ai-research__" in d]
+check("43 no routing doc tells a skill to look for the wrong tool prefix",
+      not bad_prefix, str(bad_prefix))
+check("44 the real runtime prefix is documented where routing decisions are made",
+      all(RUNTIME_PREFIX in ROUTING_DOCS[n]
+          for n in ("retrieval-transports.md", "evidence-research/SKILL.md",
+                    "start/SKILL.md", "capability-map(start)", "capability-map(er)")))
+no_suffix = [n for n in ("retrieval-transports.md", "evidence-research/SKILL.md",
+                         "start/SKILL.md", "safe-search-gateway")
+             if not all(s in ROUTING_DOCS[n] for s in
+                        ("__search_pubmed", "__search_systematic_reviews",
+                         "__verify_citation", "__search_clinical_trials"))]
+check("45 tools are identified by suffix, so a prefix change cannot disable the transport",
+      not no_suffix, str(no_suffix))
 
 total = len(R)
 failed = [n for n, ok, _ in R if not ok]

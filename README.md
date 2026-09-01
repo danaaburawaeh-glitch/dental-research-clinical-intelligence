@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <b>Version 1.0.2 &middot; Production Release</b><br>
+  <b>Version 1.1.0 &middot; Production Release</b><br>
   Plugin identifier <code>dana-dental-research</code> &middot; Designed by Dr. Dana Abu Rawaeh
 </p>
 
@@ -145,6 +145,25 @@ not footnoted. A trial and the paper reporting it count as one study, not two.
 Connected means a real request from this code succeeded in a real environment — not that any given
 search will succeed. **A failed search never means "no evidence exists."**
 
+### How those sources are reached (v1.1.0)
+
+The first four sources are reachable two ways. The **Dental AI Research Remote MCP** server —
+`dental-ai-research`, `https://dental-ai-research-mcp.onrender.com/mcp`, hosted, no account or API
+key needed — is declared in the plugin and used by preference; the plugin-local Python connectors
+are the fallback and stay fully supported. In practice this means research works out of the box
+with no local setup, and keeps working if the hosted server is unreachable.
+
+The remote tools cover literature search, systematic-review search, citation verification and trial
+registry search. Everything else — full record fetch, single-trial detail, the executable
+retraction gate, deduplication, trial↔publication linkage and SFDA — runs on the local connectors.
+
+Three limits are enforced rather than assumed: the two routes call the same upstream databases, so
+agreement between them is **one** retrieval and never independent corroboration; remote results
+carry no retraction metadata, so anything backing a clinical claim is re-checked locally against the
+retraction gate or is marked *retraction-status unchecked*; and a large remote result count reflects
+broad term expansion, not a body of relevant evidence, so records are inspected before any count is
+reported. A transport being down is a **retrieval failure**, never a downgrade to "not connected."
+
 ## Saudi governance layer
 
 Every Saudi regulatory statement carries one of four states: **VERIFIED**, **REQUIRES
@@ -172,7 +191,7 @@ claude plugin install dana-dental-research@dana-dental
 Verify it worked:
 
 ```bash
-claude plugin list                          # shows v1.0.2, enabled
+claude plugin list                          # shows v1.1.0, enabled
 claude plugin details dana-dental-research  # lists all 9 skills
 ```
 
@@ -254,7 +273,7 @@ Nothing in it constitutes regulatory authorisation for any product, material or 
 
 ## Version and updates
 
-Current version **1.0.2**. Update with:
+Current version **1.1.0**. Update with:
 
 ```bash
 claude plugin marketplace update dana-dental
@@ -278,15 +297,15 @@ When reporting a clinical-behaviour problem, **never include patient-identifying
 | [QUICK_START.md](QUICK_START.md) · [EN](docs/QUICK_START_EN.md) · [AR](docs/QUICK_START_AR.md) | Getting started in five minutes |
 | [User guide EN](docs/USER_GUIDE_EN.md) · [AR](docs/USER_GUIDE_AR.md) | How to work with it day to day |
 | [Capabilities & limitations EN](docs/CAPABILITIES_AND_LIMITATIONS_EN.md) · [AR](docs/CAPABILITIES_AND_LIMITATIONS_AR.md) | Exactly what it does and does not do |
-| [Release notes v1.0.2](docs/RELEASE_NOTES_v1.0.2.md) | What changed |
+| [Release notes v1.1.0](docs/RELEASE_NOTES_v1.1.0.md) · [v1.0.2](docs/RELEASE_NOTES_v1.0.2.md) | What changed |
 | [SECURITY.md](SECURITY.md) | Privacy and credential rules |
 | [DISCLAIMER.md](DISCLAIMER.md) · [TERMS_OF_USE.md](TERMS_OF_USE.md) | Clinical and legal position |
 | [VERSIONING.md](VERSIONING.md) · [CONTRIBUTING.md](CONTRIBUTING.md) | For maintainers |
 
 ## Release
 
-**[v1.0.2 — Production Release](https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.0.2)**
-· 0 P0 blockers · 0 P1 blockers · 330 regression assertions passing.
+**[v1.1.0 — Remote MCP Integration](https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence/releases/tag/v1.1.0)**
+· 0 P0 blockers · 0 P1 blockers · all regression suites passing (documentation-consistency suite now 45/45).
 
 Checksums are published with the release; verify a download with
 `shasum -a 256 -c SHA256SUMS.txt`.

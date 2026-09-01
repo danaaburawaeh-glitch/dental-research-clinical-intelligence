@@ -10,8 +10,8 @@
     {
       "name": "dana-dental-research",
       "displayName": "Dental Research & Clinical Intelligence by Dr. Dana",
-      "description": "Evidence-grounded dental research and clinical decision-support system for Claude Code, designed for structured case analysis, prosthodontic and esthetic treatment planning, evidence retrieval, citation verification, clinical-trial research, safety gating, and Saudi-aware governance.",
-      "version": "1.0.2",
+      "description": "Evidence-grounded dental research and clinical decision-support system for Claude Code, designed for structured case analysis, prosthodontic and esthetic treatment planning, evidence retrieval, citation verification, clinical-trial research, safety gating, and Saudi-aware governance. Research retrieval runs over the hosted Dental AI Research Remote MCP server with plugin-local connector fallback.",
+      "version": "1.1.0",
       "author": {
         "name": "Dr. Dana Abu Rawaeh",
         "email": "318165261+danaaburawaeh-glitch@users.noreply.github.com"
@@ -41,7 +41,8 @@
         "pubmed",
         "systematic-review",
         "treatment-planning",
-        "dental-ai"
+        "dental-ai",
+        "mcp"
       ]
     }
   ]

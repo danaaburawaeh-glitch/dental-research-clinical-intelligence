@@ -57,11 +57,25 @@ unavailable. Neither layer substitutes for the other.
    does not fall back to open web search or model memory as if it were equivalent. See §"Failure
    behavior" below and no-silent-fallback rules (Phase 18 principle, folded into source-priority.md).
 5. **Record provenance.** For every connector actually invoked: which one, the exact query, the
-   date, and the filters applied. This feeds search-strategy.md's search-log-template.md.
-6. **Invoke one or more connectors** per the source-selection decision in step 2.
+   date, and the filters applied — **and (v1.1.0) which transport was used**, since the remote
+   MCP transport does not return NCBI's `query_translation` and its results carry no
+   retraction/correction metadata. This feeds search-strategy.md's search-log-template.md.
+6. **Invoke one or more connectors** per the source-selection decision in step 2. **(v1.1.0)**
+   Choosing the *source* (step 2) and choosing the *transport* that reaches it are two separate
+   decisions. The gateway selects the transport per `retrieval-transports.md`: prefer the remote
+   MCP tools (matched by suffix — `__search_pubmed`, `__search_systematic_reviews`,
+   `__verify_citation`, `__search_clinical_trials`; normally prefixed
+   `mcp__plugin_dana-dental-research_dental-ai-research__`) when the environment exposes them, fall back to the
+   plugin-local `connectors/*/client.py` CLIs otherwise, and use the local CLIs for everything the
+   remote tools do not expose (record fetch, trial fetch, the retraction gate, dedup, linkage,
+   SFDA). Running the same query over both transports yields **one** retrieval, not two sources.
 7. **Return connector status** — not just results. A connector that returned zero results, timed
    out, or is not connected must be distinguishable from a connector that successfully searched and
    confirmed no matching evidence exists (see absence-of-evidence.md's three-way distinction).
+   **(v1.1.0)** A remote-MCP `ok: false` is a retrieval failure — per the server's own stated
+   contract it is never a finding that no evidence exists. Likewise a large `total_matched` from the
+   remote `search_pubmed` on a specific phrase reflects OR-expansion, not relevance: the gateway
+   reports what the returned records actually are, never a bare count.
 8. **Route retrieved evidence through the downstream pipeline**: DEL-7 tagging
    (del7-evidence-hierarchy.md) -> directness (evidence-directness.md) -> citation verification
    (citation-verification.md) -> numeric verification (numeric-evidence-gate.md, bundled from

@@ -4,7 +4,14 @@ description: Frame dental evidence questions through PICO/PECO/PIRD/SPIDER, retr
 ---
 # Evidence Research
 
-Load clinical-governance and references/connector-capability-map.md.
+Load clinical-governance, references/connector-capability-map.md and
+references/retrieval-transports.md (v1.1.0 — which transport reaches which source).
+
+v1.1.0 note (2026-09-01): the **Dental AI Research Remote MCP** server
+(`dental-ai-research`, declared in the plugin's `.mcp.json`) is now a second retrieval transport
+alongside the plugin-local Python CLIs. It adds no new source and changes no connector status —
+see references/retrieval-transports.md for the selection rule, the T1/T2 behavioural differences,
+and the hard rule that step 5's retraction gate still runs over the local connectors.
 
 v0.4 Phase A note: `~~literature`, `~~systematic-reviews`, and `~~journal-access` now have real
 implementations (`connectors/pubmed/`, `connectors/crossref/`, invoked via the Bash tool per
@@ -44,7 +51,27 @@ a small amount of new connective text making an implicit step explicit.
    `"${CLAUDE_PLUGIN_ROOT:-$(ls -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/dana-dental-research/*/connectors/pubmed/client.py 2>/dev/null | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V -k1,1 | tail -1 | cut -f2- | sed 's:/connectors/pubmed/client\.py$::')}"/connectors/pubmed/client.py
    search|fetch|search-systematic-reviews|
    search-clinical-studies`); for `~~journal-access`'s citation-verification role, this means
-   `connectors/crossref/client.py lookup-doi|search-bibliographic`. If a selected connector is
+   `connectors/crossref/client.py lookup-doi|search-bibliographic`.
+
+   **Transport selection (v1.1.0) — references/retrieval-transports.md.** The gateway now has two
+   ways to reach the same four connected sources. **Prefer the remote MCP transport** when the four
+   dental research MCP tools are exposed in the running environment — match them by suffix
+   (`__search_pubmed`, `__search_systematic_reviews`, `__verify_citation`,
+   `__search_clinical_trials`), normally carrying the prefix
+   `mcp__plugin_dana-dental-research_dental-ai-research__`:
+   `search_pubmed` (`~~literature`), `search_systematic_reviews` (`~~systematic-reviews`),
+   `verify_citation` (`~~journal-access`, step 6), `search_clinical_trials` (`~~clinical-trials`).
+   **Fall back to the local CLI paths above** when those tools are absent or a call fails at the
+   transport level — the local path is not deprecated. Three rules are not negotiable:
+   (a) both transports hit the same upstream APIs, so agreement between them is **one** retrieval,
+   never independent corroboration; (b) the remote tools return no retraction/correction metadata,
+   so any record that will back a clinical claim must be re-fetched locally
+   (`pubmed/client.py fetch`) for step 5's gate, or disclosed as retraction-status unchecked;
+   (c) the remote `search_pubmed` does **not** phrase-quote a query — a large `total_matched` on a
+   nonsense or highly specific phrase means broad OR-expansion, not a body of relevant evidence, so
+   inspect the returned records before reporting any count.
+
+   If a selected connector is
    `NOT CONNECTED` (check connector-capability-map.md's actual status — do not assume connected
    because the implementation exists), the gateway returns a structured retrieval limitation —
    never simulated results. Build the search per references/search-strategy.md and log with
@@ -61,6 +88,14 @@ a small amount of new connective text making an implicit step explicit.
    `CROSSREF_RELATIONSHIP_MAP.md` for exactly which structured signals produce which
    classification). This step is where that parsed output is collected before anything else is
    done with it — no classification, tagging, or appraisal happens yet.
+
+   **(v1.1.0) Records retrieved over the remote MCP transport are NOT in this shape.** They carry
+   no `is_retracted`, `is_corrected`, `record_role` or `related_notices`. Before such a record can
+   proceed to step 5, re-fetch it over the local connector by its PMID/DOI
+   (`connectors/pubmed/client.py fetch --pmids …`, `connectors/crossref/client.py lookup-doi`) so
+   the parsers populate those fields. If the local transport is unavailable, the record is carried
+   forward explicitly marked **retraction-status unchecked** and may not be presented as a gated,
+   synthesis-eligible source — never assume `included` by default.
 
 5. **Apply the executable retraction/correction gate.**
    `connectors/shared/retraction_gate.py`, `apply_retraction_gate()` — runs on the records from
@@ -95,7 +130,13 @@ a small amount of new connective text making an implicit step explicit.
    every author/title/year/journal/DOI/PMID/sample size/follow-up/design/effect/CI/p-value/
    conclusion. Never invent a missing bibliographic field. Never paraphrase a guideline
    recommendation in a way that changes its strength. Never silently repair a PubMed/Crossref
-   field disagreement — report both values and flag UNVERIFIED.
+   field disagreement — report both values and flag UNVERIFIED. **(v1.1.0)** The remote MCP
+   `verify_citation` tool performs this same dual-source check and returns
+   `VERIFIED`/`PARTIALLY_VERIFIED`/`NOT_VERIFIED` with a per-field `metadata_match` and a
+   `source_provenance` block naming which sources were actually consulted; map its output onto the
+   three states above and carry the named disagreeing fields through verbatim. A `NOT_VERIFIED`
+   caused by a Crossref↔PubMed disagreement is a real finding, distinct from an upstream failure —
+   do not retry it on the other transport hoping for a cleaner answer.
 
 7. **Classify study design.** references/study-design-classification.md — name the actual design
    (disambiguate RCT) for every `included` record reaching this point. Only records that survived

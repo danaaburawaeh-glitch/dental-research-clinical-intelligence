@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dana-dental-research",
   "displayName": "Dental Research & Clinical Intelligence by Dr. Dana",
-  "version": "1.0.2",
-  "description": "Dental Research & Clinical Intelligence by Dr. Dana — clinical decision support and scientific/academic support for dentistry, governed by CORE V0.4. Evidence engine with live PubMed/NCBI, Crossref and ClinicalTrials.gov API v2 connectors; Saudi governance layer (SFDA regulatory gate, PDPL patient-data rules, professional/clinical governance); clinical intelligence layer with case-state provenance tagging, an executable red-flag sweep, phased treatment planning and a non-overridable safety veto; categorical prognosis engine; and a global author-identity policy. Scope: Fixed Prosthodontics and Esthetic Restorative Dentistry. CONNECTED: ~~literature, ~~systematic-reviews, ~~journal-access, ~~clinical-trials. NOT CONNECTED: ~~regulatory-saudi (AUTH REQUIRED), ~~clinical-guidelines, ~~manufacturer-ifu. Designed by Dr. Dana Abu Rawaeh.",
+  "version": "1.1.0",
+  "description": "Dental Research & Clinical Intelligence by Dr. Dana — clinical decision support and scientific/academic support for dentistry, governed by CORE V0.4. Evidence engine with live PubMed/NCBI, Crossref and ClinicalTrials.gov API v2 connectors, reachable over two transports — the hosted Dental AI Research Remote MCP server (dental-ai-research) and the plugin-local Python CLIs; Saudi governance layer (SFDA regulatory gate, PDPL patient-data rules, professional/clinical governance); clinical intelligence layer with case-state provenance tagging, an executable red-flag sweep, phased treatment planning and a non-overridable safety veto; categorical prognosis engine; and a global author-identity policy. Scope: Fixed Prosthodontics and Esthetic Restorative Dentistry. CONNECTED: ~~literature, ~~systematic-reviews, ~~journal-access, ~~clinical-trials. NOT CONNECTED: ~~regulatory-saudi (AUTH REQUIRED), ~~clinical-guidelines, ~~manufacturer-ifu. Designed by Dr. Dana Abu Rawaeh.",
   "author": {
     "name": "Dr Dana Abu Rawaeh",
     "email": "318165261+danaaburawaeh-glitch@users.noreply.github.com"
@@ -12,6 +12,7 @@
     "dentistry",
     "clinical-decision-support",
     "evidence-based-medicine",
-    "dana"
+    "dana",
+    "mcp"
   ]
 }

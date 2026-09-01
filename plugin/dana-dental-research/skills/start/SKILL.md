@@ -18,9 +18,21 @@ Identify which relevant connector categories are available. Never imply access t
 Read `references/connector-capability-map.md` FIRST and report its status column. Do not
 infer status any other way. In particular:
 
-- These connectors are **plugin-local Python CLIs invoked via the Bash tool**, not MCP
-  servers. The bundled `.mcp.json` is empty by design, so the absence of `mcp__*` tools is
-  never evidence that a connector is unavailable.
+- **(v1.1.0)** These sources are reachable over **two transports**: the remote MCP server
+  `dental-ai-research` declared in the plugin's `.mcp.json` (tools
+  tool names ending
+  `__search_pubmed` / `__search_systematic_reviews` / `__verify_citation` /
+  `__search_clinical_trials`, normally prefixed
+  `mcp__plugin_dana-dental-research_dental-ai-research__` — Claude Code builds that prefix from the
+  server id `plugin:<plugin>:<server>`, so **match by suffix, never by a hard-coded prefix**), and the **plugin-local Python CLIs
+  invoked via the Bash tool** (`connectors/*/client.py`). Check which transports the running
+  environment actually exposes; the absence of `mcp__*` tools is never on its own evidence
+  that a source is unavailable, because the local CLIs remain a full retrieval path.
+  (Historical note: before v1.1.0 the bundled `.mcp.json` was empty by design and there was
+  no MCP transport at all. It is no longer empty.)
+- Report the **source** status, not the transport. A transport being missing or failing is a
+  retrieval failure, never a `CONNECTED` → `NOT CONNECTED` downgrade. See
+  `evidence-research/references/retrieval-transports.md`.
 - Report each source **separately**. Never merge sources of differing status into one row.
 - Sources with no connector in this plugin (Cochrane/CENTRAL, Embase, Scopus) are reported
   `NOT IMPLEMENTED` — distinct from `NOT CONNECTED` and from a runtime retrieval failure.

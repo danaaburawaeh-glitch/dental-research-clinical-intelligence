@@ -23,6 +23,13 @@ as a retracted ARTICLE — see RETRACTION_DIRECTIONALITY_AUDIT.md), removed an u
 `relation`-field assumption, and added an executable retraction gate
 (connectors/shared/retraction_gate.py). None of this changes connector CONNECTED status — still
 NOT CONNECTED for all seven, unchanged reasoning.
+v1.1.0 (2026-09-01): Remote MCP integration. The Dental AI Research Remote MCP server
+(https://dental-ai-research-mcp.onrender.com/mcp) is now declared in the plugin's .mcp.json and
+provides a SECOND TRANSPORT to four already-CONNECTED sources. This changes NO status in the table
+below: status is a property of the source, not of the transport used to reach it, and every source
+listed CONNECTED was already CONNECTED in v1.0.2 over the plugin-local CLIs. Transport selection,
+the T1/T2 behavioural differences, and the retraction-gate consequence are governed by
+skills/evidence-research/references/retrieval-transports.md.
 -->
 
 # Connector Capability Map
@@ -50,6 +57,23 @@ connected; the gateway file never overrides it.
 | `~~journal-access` | Metadata / citation verification (re-scoped, v0.4) | **Built and live-validated**: `connectors/crossref/client.py lookup-doi` / `search-bibliographic`, `connectors/crossref/{parser,models,rate_limit,errors}.py`. | **CONNECTED — METADATA/CITATION VERIFICATION via Crossref.** Bar 3 met 2026-08-30 (see Live Validation Record). Never describe as "CONNECTED — FULL TEXT" — Crossref does not provide full text. See `connectors/crossref/models.py`. |
 | `~~manufacturer-ifu` | Manufacturer instructions-for-use documents (IFU) | Not touched in Phase A | **NOT CONNECTED** |
 | `~~regulatory-saudi` | SFDA Saudi regulatory status lookup (REG) | **Built (v0.6.0 Phase C)**: `connectors/sfda/client.py` — OAuth client-credentials + registered medical-device / drug product lookup, against the real developer.sfda.gov.sa API programme. Gateway host and paths are environment configuration, never hard-coded, because SFDA discloses them only to registered applications. | **NOT CONNECTED — AUTH REQUIRED.** SFDA requires a registered application; no credentials are configured in this environment, so bar 3 (a real request succeeding) is unmet. Every unavailable outcome maps to REQUIRES VERIFICATION — never to "not approved". See SFDA_CONNECTOR_VALIDATION.md and saudi-regulatory-gate.md. |
+
+## Transport note (v1.1.0)
+
+Every CONNECTED source below is now reachable over **two transports**:
+
+- **T1 — Remote MCP:** server `dental-ai-research` (`.mcp.json`). Claude Code registers it as
+  `plugin:dana-dental-research:dental-ai-research`, so the runtime tools are
+  `mcp__plugin_dana-dental-research_dental-ai-research__search_pubmed`,
+  `…__search_systematic_reviews`, `…__verify_citation`, `…__search_clinical_trials`.
+  **Identify them by suffix, not by a hard-coded prefix** — see retrieval-transports.md.
+- **T2 — Plugin-local Python CLIs** invoked via the Bash tool (`connectors/*/client.py`).
+
+Prefer T1 when it is available; fall back to T2; use T2 for everything T1 does not expose
+(record fetch, trial fetch, the executable retraction gate, dedup, linkage, SFDA). T1 and T2 hit
+the same upstream APIs, so agreement between them is **not** independent corroboration. Full rule:
+`retrieval-transports.md`. A transport being unavailable is a retrieval failure, never a status
+downgrade — see the Runtime availability rule below.
 
 ## Implementation Ledger — precisely what "Built" means and doesn't mean
 
@@ -162,6 +186,27 @@ is preserved.
 **The other four Saudi bodies have no connector at all.** SCFHS, MOH, SDAIA/PDPL and CST claims are
 `REQUIRES VERIFICATION` by default, routed to the named body — see
 `saudi-regulatory-source-priority.md`.
+
+### v1.1.0 addendum — Remote MCP transport live validation (2026-09-01)
+
+**Method:** direct JSON-RPC calls to `https://dental-ai-research-mcp.onrender.com/mcp` over
+streamable HTTP from the operator's machine. No mock, no browser tool, no simulated response.
+
+| Test | Call | Result |
+|---|---|---|
+| 1. Handshake | `initialize` | HTTP 200, protocol `2025-06-18`, serverInfo `dental-ai-research` v1.0.0, no authentication required |
+| 2. Tool discovery | `tools/list` | 4 tools: `search_pubmed`, `search_systematic_reviews`, `verify_citation`, `search_clinical_trials` |
+| 3. Literature | `search_pubmed{query:"porcelain veneers survival", max_results:2}` | `ok:true`, `SUCCESS`, `total_matched` 431, real PMIDs with DOI + abstract (e.g. PMID 42629625, DOI 10.1111/clr.70160) |
+| 4. Systematic reviews | `search_systematic_reviews{query:"porcelain veneers survival"}` | `ok:true`, `SUCCESS`, `total_matched` 36 — matches the T2 post-fix count of 36 recorded above |
+| 5. Citation verification | `verify_citation{doi:"10.5005/jp-journals-10024-3981"}` | `NOT_VERIFIED` — Crossref and PubMed both returned the record but disagree on year (`metadata_match.year:false`); both sources named in `source_provenance`. Correct behaviour under citation-verification.md: the disagreement is surfaced, not silently repaired |
+| 6. Trial registry | `search_clinical_trials{query:"dental implants", max_results:2}` | `ok:true`, `SUCCESS`, `total_matched` 1351 (T2 recorded 1350 on 2026-08-31), real NCT IDs, `evidence_caveat` present |
+| 7. Nonsense query | `search_pubmed{query:"zzqxdental unobtainium periodontal flurbotron"}` | `SUCCESS`, `total_matched` 149,830 — **T1 does not phrase-quote**, where T2 returned `ZERO_RESULTS`. A non-zero T1 count is not evidence of a relevant match; see retrieval-transports.md difference 1 |
+| 8. Bad argument | `search_clinical_trials{condition:…}` | JSON-RPC error −32602, unexpected keyword — schema uses `query`, not `condition`. Server validates rather than guessing |
+
+**What this validation does and does not establish.** It establishes that T1 is live, unauthenticated,
+schema-correct, and returns real upstream identifiers. It does **not** add a source, does not change
+any status, and does **not** supply retraction/correction metadata — T1 records carry no
+`is_retracted` / `record_role`, so the mandatory retraction gate still runs over T2.
 
 ## Runtime availability rule (v0.4.5.1)
 
