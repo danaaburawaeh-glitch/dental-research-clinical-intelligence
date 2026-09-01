@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0-development",
+  "version": "1.2.0",
   "purpose": "Validation set for the v1.2 Evidence Intelligence Engine. Every identifier here is a synthetic FIXTURE — no PMID, DOI or NCT ID appears in this file, by design.",
   "identifier_policy": "Fixtures are prefixed FIXTURE- and are never formatted as real identifiers. A benchmark that seeds realistic-looking identifiers into the repository creates the exact artefact the engine exists to prevent.",
   "domains": [

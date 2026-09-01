@@ -1,6 +1,6 @@
 <!--
 REFERENCE-ID: duplication-and-overlap
-VERSION: 1.2.0-rc
+VERSION: 1.2.0
 CANONICAL-OWNER: evidence-research
 LAST-SYNCHRONIZED: 2026-09-01
 New in v1.2. Executable implementation: `evidence/overlap.py`, building on

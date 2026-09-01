@@ -1,8 +1,7 @@
-# CHANGELOG — v1.1.0 → v1.2.0-development
+# CHANGELOG — v1.1.0 → v1.2.0
 
-**Branch:** `v1.2-development` · **Working title:** Dental AI Evidence Intelligence Engine
-**Status: DEVELOPMENT — NOT RELEASED.** Not merged, not tagged, not pushed to marketplace
-production. Public v1.1.0 is unmodified.
+**Released:** 2026-09-02 · **Dental AI Evidence Intelligence Engine**
+**Status: RELEASED.** Merged to `main`, tagged `v1.2.0`.
 
 ## What changed, in one line
 
@@ -213,5 +212,10 @@ citation with nothing behind it, available for any later reader to lift into an 
 
 ## Release status
 
-**DO NOT PUBLISH.** Not merged, not tagged, not pushed. The manifest version reads
-`1.2.0-development` so this tree cannot be mistaken for public v1.1.0.
+**RELEASED as v1.2.0.** Manifest version `1.2.0`.
+
+Two further rounds of work followed the initial build and are included in this release: four
+defects found by real-world evidence validation (see the commit history), and the two release
+blockers closed in the release candidate — T1/T2 citation-verification parity and graded cohort
+overlap detection. The remote MCP server was deployed separately at v1.1.0 / verification
+contract 1.1.

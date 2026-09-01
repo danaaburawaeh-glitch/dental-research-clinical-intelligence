@@ -1,6 +1,6 @@
 <!--
 REFERENCE-ID: citation-verification
-VERSION: 1.2.0-rc
+VERSION: 1.2.0
 CANONICAL-OWNER: evidence-research (see /ARCHITECTURE_REFERENCE_MAP.md for the full owner/consumer table)
 LAST-SYNCHRONIZED: 2026-09-01
 This file is a bundled copy. Edit only at the canonical owner location and re-sync all bundles
