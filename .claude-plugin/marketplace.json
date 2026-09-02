@@ -10,8 +10,8 @@
     {
       "name": "dana-dental-research",
       "displayName": "Dental Research & Clinical Intelligence by Dr. Dana",
-      "description": "Evidence-grounded dental research and clinical decision-support system for Claude Code. v1.2 adds the Evidence Intelligence Engine: retrieval, citation verification, quality appraisal, certainty, synthesis and clinical applicability are six separate assessments, so a bibliographically VERIFIED citation is never treated as strong evidence on that basis alone. Citation Verification 2.0 (seven states, including VERIFIED_WITH_METADATA_DISCREPANCY), conservative structured certainty assessment, evidence directness, an executable numeric evidence gate, retraction/correction gating, conflicting-evidence handling, cohort overlap detection, a standardized evidence table and a Clinical Bottom Line. Research retrieval runs over the hosted Dental AI Research Remote MCP server with plugin-local connector fallback. Connected sources: PubMed/NCBI, Crossref (metadata and citation verification), ClinicalTrials.gov API v2 (registry records only). Cochrane/CENTRAL, Embase and Scopus are NOT integrated. Full text is not retrieved. Saudi-aware governance with an SFDA regulatory gate (NOT CONNECTED — authentication required).",
-      "version": "1.2.0",
+      "description": "Evidence-grounded dental research and clinical decision-support system for Claude Code. v1.2.1 adds decision-scoped clinical reasoning: a missing data point blocks a decision only where it can materially change THAT decision, sufficiency is reported per decision rather than per case, and missing data is ranked from hard blocker to documentation gap across 25 decision profiles. Risk factors are not contraindications; diagnostic tools are not diagnoses; no single determinant assigns a prognosis; elective is not inappropriate. The Scientific Clinical Writing Layer renders answers as clinician-facing consultations by default while internal governance remains available in audit mode. Evidence Intelligence Engine unchanged from v1.2.0: Citation Verification 2.0 with VERIFIED_WITH_METADATA_DISCREPANCY, conservative certainty, directness, an executable numeric evidence gate, retraction gating, conflicting-evidence handling and cohort overlap detection. Research retrieval runs over the hosted Dental AI Research Remote MCP server with plugin-local connector fallback. Connected: PubMed/NCBI, Crossref (metadata and citation verification), ClinicalTrials.gov API v2 (registry records only). Cochrane/CENTRAL, Embase and Scopus are NOT integrated. Full text is not retrieved. Saudi-aware governance with an SFDA regulatory gate (NOT CONNECTED — authentication required).",
+      "version": "1.2.1",
       "author": {
         "name": "Dr. Dana Abu Rawaeh",
         "email": "318165261+danaaburawaeh-glitch@users.noreply.github.com"
@@ -28,7 +28,9 @@
         "clinical-decision-support",
         "evidence-appraisal",
         "citation-verification",
-        "certainty-of-evidence"
+        "certainty-of-evidence",
+        "clinical-reasoning",
+        "decision-support"
       ],
       "source": "./plugin/dana-dental-research",
       "homepage": "https://github.com/danaaburawaeh-glitch/dental-research-clinical-intelligence",
