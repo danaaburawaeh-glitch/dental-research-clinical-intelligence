@@ -373,7 +373,8 @@ class PrognosisOrderError(RuntimeError):
 
 
 def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = None,
-                    adverse_findings=None, supporting_findings=None, tooth=None):
+                    adverse_findings=None, supporting_findings=None, tooth=None,
+                    decision=None, conditions_met=None):
     """
     Enforced-order entry point. Use this rather than `assess()` in the output path.
 
@@ -386,8 +387,15 @@ def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = No
             f"Case discipline {case.discipline!r} is out of scope; no prognosis is produced. "
             + ORDER_RULE)
 
-    suff = case.sufficiency()
-    if suff["verdict"] in (INSUFFICIENT, OUT_OF_SCOPE):
+    # AUDIT v1.2.1 §10 — sufficiency is evaluated against the decision being made. Without a
+    # decision this falls back to the discipline-wide verdict, which is the over-blocking
+    # behaviour v1.2.1 exists to remove; the fallback is retained only for backward compatibility
+    # and is flagged in the result so no clinical workflow can depend on it unnoticed.
+    suff = case.sufficiency(decision=decision, conditions_met=conditions_met)
+    blocking_verdicts = (INSUFFICIENT, OUT_OF_SCOPE) if decision is None else (
+        OUT_OF_SCOPE, "INSUFFICIENT", "INSUFFICIENT_FOR_IRREVERSIBLE_TREATMENT",
+        "INSUFFICIENT_FOR_FINAL_PROSTHETIC_DESIGN", "INSUFFICIENT_FOR_SURGICAL_DECISION")
+    if suff["verdict"] in blocking_verdicts:
         return {
             "overall": UNDETERMINED,
             "blocks_irreversible_planning": True,
@@ -411,8 +419,11 @@ def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = No
             "order_rule": ORDER_RULE, "no_numbers_rule": NO_NUMBERS_RULE,
         }
 
-    result = assess(case, adverse_findings, supporting_findings, tooth=tooth)
+    result = assess(case, adverse_findings, supporting_findings, tooth=tooth, decision=decision,
+                    conditions_met=conditions_met)
     result["order_rule"] = ORDER_RULE
+    result["decision_profile"] = decision
+    result["decision_profile_missing"] = decision is None
     return result
 
 

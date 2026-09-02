@@ -82,7 +82,8 @@ def review(case: CaseState,
            unverified_claims: Optional[List[str]] = None,
            contains_identifiers: bool = False,
            draft_output: Optional[str] = None,
-           output_context: str = idp.CONTEXT_CLINICAL):
+           output_context: str = idp.CONTEXT_CLINICAL,
+           decision=None):
     """
     The single gate. Returns a VetoResult.
 
@@ -126,7 +127,9 @@ def review(case: CaseState,
             hard_block = True
 
     # --- 3. Data sufficiency vs the act being requested ------------------
-    suff = case.sufficiency()
+    # AUDIT v1.2.1 §10 — see prognosis.assess_in_order. The no-decision path is backward
+    # compatibility only and is reported as such.
+    suff = case.sufficiency(decision=decision)
     if suff["verdict"] == INSUFFICIENT:
         flags.append(FLAG_INSUFFICIENT_DATA)
         reasons.append(f"Data sufficiency is INSUFFICIENT — {suff['reason']}")

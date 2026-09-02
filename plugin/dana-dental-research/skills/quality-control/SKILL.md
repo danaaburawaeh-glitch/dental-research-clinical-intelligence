@@ -4,6 +4,16 @@ description: Validate consequential clinical and scientific outputs before relea
 ---
 # Quality Control
 
+## Output language (v1.2.1) — CLINICAL MODE is the default
+
+`references/clinical-writing-layer.md`. The engine's internal labels (HARD_BLOCKER,
+INSUFFICIENT_FOR_IRREVERSIBLE_TREATMENT, POTENTIALLY_COMPROMISED, decision-profile names,
+suppressed-field lists) are **never printed** in an ordinary clinician-facing answer — they are
+translated into clinical prose. Lead with what you think, why, and what should happen next.
+Expose internal state only when the clinician explicitly asks for audit, technical, governance,
+developer or debug output.
+
+
 ## Clinical decision context (v1.2.1) — read before answering any case
 
 `references/clinical-decision-context.md` governs how this skill treats missing data, wording and

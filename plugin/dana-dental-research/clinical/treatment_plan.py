@@ -106,7 +106,8 @@ MONITOR_DEFER = "Monitor / defer"
 def build_plan(case: CaseState, items: List[PlannedItem],
                alternatives: Optional[List[Alternative]] = None,
                objectives: Optional[List[str]] = None,
-               esthetic_elective: bool = False):
+               esthetic_elective: bool = False,
+               decision=None):
     """
     Assemble the phased plan and run the sequencing gates.
 
@@ -119,7 +120,8 @@ def build_plan(case: CaseState, items: List[PlannedItem],
     warnings: List[str] = []
 
     # ---- Gate 0: scope and sufficiency -----------------------------------
-    suff = case.sufficiency()
+    # AUDIT v1.2.1 §10 — see prognosis.assess_in_order.
+    suff = case.sufficiency(decision=decision)
     if suff["verdict"] == OUT_OF_SCOPE:
         return {"blocked": True, "phases": {}, "blocking": [
             {"rule": "scope", "detail": suff["reason"]}], "sufficiency": suff}

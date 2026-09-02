@@ -120,6 +120,9 @@ ELECTIVE_CROWN_REPLACEMENT = "elective_crown_replacement"
 ENDODONTIC_TREATMENT = "endodontic_treatment"
 EXTRACTION = "extraction"
 IMPLANT_PLACEMENT = "implant_placement"
+IMPLANT_PLACEMENT_IMMEDIATE = "implant_placement_immediate"
+BONE_AUGMENTATION = "bone_augmentation"
+IMPLANT_DEFINITIVE_CROWN = "implant_definitive_crown"
 IMPLANT_PROVISIONALIZATION = "implant_provisionalization"
 IMPLANT_FUNCTIONAL_LOADING = "implant_functional_loading"
 GINGIVAL_ESTHETIC_SURGERY = "gingival_esthetic_surgery"
@@ -132,7 +135,8 @@ DECISIONS = (
     TMD_ASSESSMENT, PERIODONTAL_DIAGNOSIS, PERIODONTAL_THERAPY_NONSURGICAL,
     RESTORABILITY_ASSESSMENT, DIRECT_RESTORATION, VENEER_PREPARATION, CROWN_PREPARATION,
     POST_CORE_CROWN, ELECTIVE_CROWN_REPLACEMENT, ENDODONTIC_TREATMENT, EXTRACTION,
-    IMPLANT_PLACEMENT, IMPLANT_PROVISIONALIZATION, IMPLANT_FUNCTIONAL_LOADING,
+    IMPLANT_PLACEMENT, IMPLANT_PLACEMENT_IMMEDIATE, BONE_AUGMENTATION,
+    IMPLANT_PROVISIONALIZATION, IMPLANT_FUNCTIONAL_LOADING, IMPLANT_DEFINITIVE_CROWN,
     GINGIVAL_ESTHETIC_SURGERY, IRREVERSIBLE_OCCLUSAL_ADJUSTMENT, FULL_MOUTH_REHABILITATION,
     MULTIDISCIPLINARY_ESTHETIC_PLANNING,
 )
@@ -140,12 +144,15 @@ DECISIONS = (
 # Decisions that remove tooth structure, cut bone, or permanently change the occlusal scheme.
 IRREVERSIBLE_DECISIONS = (
     VENEER_PREPARATION, CROWN_PREPARATION, POST_CORE_CROWN, ELECTIVE_CROWN_REPLACEMENT,
-    ENDODONTIC_TREATMENT, EXTRACTION, IMPLANT_PLACEMENT, GINGIVAL_ESTHETIC_SURGERY,
-    IRREVERSIBLE_OCCLUSAL_ADJUSTMENT, FULL_MOUTH_REHABILITATION,
+    ENDODONTIC_TREATMENT, EXTRACTION, IMPLANT_PLACEMENT, IMPLANT_PLACEMENT_IMMEDIATE,
+    BONE_AUGMENTATION, GINGIVAL_ESTHETIC_SURGERY, IRREVERSIBLE_OCCLUSAL_ADJUSTMENT,
+    FULL_MOUTH_REHABILITATION,
 )
-SURGICAL_DECISIONS = (EXTRACTION, IMPLANT_PLACEMENT, GINGIVAL_ESTHETIC_SURGERY)
+SURGICAL_DECISIONS = (EXTRACTION, IMPLANT_PLACEMENT, IMPLANT_PLACEMENT_IMMEDIATE,
+                      BONE_AUGMENTATION, GINGIVAL_ESTHETIC_SURGERY)
 PROSTHETIC_DESIGN_DECISIONS = (CROWN_PREPARATION, POST_CORE_CROWN, FULL_MOUTH_REHABILITATION,
-                               ELECTIVE_CROWN_REPLACEMENT, IMPLANT_FUNCTIONAL_LOADING)
+                               ELECTIVE_CROWN_REPLACEMENT, IMPLANT_FUNCTIONAL_LOADING,
+                               IMPLANT_DEFINITIVE_CROWN)
 CONSERVATIVE_DECISIONS = (
     DIAGNOSTIC_DISCUSSION, EXTERNAL_WHITENING, INTERNAL_BLEACHING, ORTHODONTIC_SCREENING,
     TMD_ASSESSMENT, PERIODONTAL_DIAGNOSIS, PERIODONTAL_THERAPY_NONSURGICAL,
@@ -220,8 +227,11 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     EXTERNAL_WHITENING: DecisionProfile(
         EXTERNAL_WHITENING,
-        blocking=("chief_complaint",),
-        relevant=("caries_restorative_status", "periodontal_status",
+        # AUDIT v1.2.1: chief_complaint downgraded from HARD_BLOCKER. Proceeding to discuss
+        # whitening without a stated complaint is not unsafe — it makes the advice generic. It
+        # fails criterion B ("truly unsafe or inappropriate to proceed without it").
+        blocking=(),
+        relevant=("chief_complaint", "caries_restorative_status", "periodontal_status",
                   "etiology_of_discolouration"),
         conditional={"pulpal_status": "if a tooth is symptomatic or suspected non-vital",
                      "existing_restoration_quality": "if anterior restorations are present and "
@@ -251,8 +261,10 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     ORTHODONTIC_SCREENING: DecisionProfile(
         ORTHODONTIC_SCREENING,
-        blocking=("chief_complaint",),
-        relevant=("periodontal_status", "dental_midline", "arch_relationship",
+        # AUDIT v1.2.1: chief_complaint downgraded — screening and referral reasoning is not
+        # unsafe without it. Fails criterion B.
+        blocking=(),
+        relevant=("chief_complaint", "periodontal_status", "dental_midline", "arch_relationship",
                   "tooth_position_assessment"),
         conditional={"skeletal_assessment": "if a skeletal discrepancy is suspected"},
         risk=("compliance_history",),
@@ -312,10 +324,14 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     VENEER_PREPARATION: DecisionProfile(
         VENEER_PREPARATION,
+        # AUDIT v1.2.1: substrate_shade downgraded from HARD_BLOCKER to DECISION_MODIFIER.
+        # Not knowing it risks an esthetic mismatch or an over-contoured result — it changes
+        # material, thickness and whether a no-prep design is viable. That is a decision modifier,
+        # not a safety gate: preparing without it is not unsafe. Fails criterion B, passes C.
         blocking=("periodontal_status", "caries_restorative_status", "pulpal_status",
                   "remaining_tooth_structure_quantified", "occlusal_loading_contacts",
-                  "expectation_screening", "substrate_shade") + _MEDICAL,
-        relevant=("enamel_availability", "smile_line", "incisal_edge_position",
+                  "expectation_screening") + _MEDICAL,
+        relevant=("substrate_shade", "enamel_availability", "smile_line", "incisal_edge_position",
                   "tooth_proportions", "gingival_levels_symmetry", "isolation_feasibility",
                   "antagonist_status"),
         conditional={"ferrule": "only if the tooth is endodontically treated or structurally "
@@ -358,11 +374,15 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     ELECTIVE_CROWN_REPLACEMENT: DecisionProfile(
         ELECTIVE_CROWN_REPLACEMENT,
+        # AUDIT v1.2.1: underlying_core_assessment downgraded from HARD_BLOCKER. The state of
+        # the core cannot be fully established until the existing crown is removed; requiring it
+        # beforehand makes the decision undecidable, which is a worse failure than the one the
+        # blocker was guarding against. It is a DECISION_MODIFIER, and the plan must be built to
+        # accommodate what removal reveals.
         blocking=("existing_restoration_quality", "periodontal_status",
-                  "caries_restorative_status", "expectation_screening",
-                  "underlying_core_assessment") + _MEDICAL,
-        relevant=("pulpal_status", "smile_line", "shade_with_reference_and_lighting",
-                  "remaining_tooth_structure_quantified"),
+                  "caries_restorative_status", "expectation_screening") + _MEDICAL,
+        relevant=("underlying_core_assessment", "pulpal_status", "smile_line",
+                  "shade_with_reference_and_lighting", "remaining_tooth_structure_quantified"),
         conditional={"ferrule": "only where the underlying core or root structure is in question",
                      "restorability_verdict_with_criteria": "if the existing crown is failing "
                                                              "rather than merely mismatched"},
@@ -395,10 +415,14 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     IMPLANT_PLACEMENT: DecisionProfile(
         IMPLANT_PLACEMENT,
-        blocking=("facial_wall_integrity", "bone_volume_assessment", "infection_status",
+        # AUDIT v1.2.1: facial_wall_integrity moved to the IMMEDIATE profile. In a healed,
+        # staged site the socket wall is no longer the question — bone volume is. Demanding it
+        # here made a delayed placement depend on a finding that no longer exists.
+        blocking=("bone_volume_assessment", "infection_status",
                   "periodontal_status", "primary_stability_feasibility",
                   "three_dimensional_position_plan") + _MEDICAL,
-        relevant=("facial_bone_thickness", "soft_tissue_phenotype", "smile_line",
+        relevant=("facial_wall_integrity", "facial_bone_thickness", "soft_tissue_phenotype",
+                  "smile_line",
                   "papilla_support", "gap_anatomy", "apical_palatal_bone",
                   "restorative_contour_plan", "antagonist_status"),
         conditional={"diabetes_control": "if diabetes is reported",
@@ -407,6 +431,46 @@ PROFILES: Dict[str, DecisionProfile] = {
         refiner=("standardised_photographic_set",),
         note="Placement only. Provisionalization and functional loading are separate decisions "
              "with their own profiles — see IMPLANT_TIMING_RULE."),
+
+    # §4 — immediate placement is its own decision with its own blockers. Bundling it with
+    # staged placement meant a contraindication to one read as a contraindication to the other.
+    IMPLANT_PLACEMENT_IMMEDIATE: DecisionProfile(
+        IMPLANT_PLACEMENT_IMMEDIATE,
+        blocking=("facial_wall_integrity", "infection_status", "primary_stability_feasibility",
+                  "three_dimensional_position_plan", "apical_palatal_bone",
+                  "periodontal_status") + _MEDICAL,
+        relevant=("facial_bone_thickness", "soft_tissue_phenotype", "smile_line", "gap_anatomy",
+                  "papilla_support", "restorative_contour_plan", "bone_volume_assessment"),
+        conditional={"diabetes_control": "if diabetes is reported",
+                     "connective_tissue_graft_plan": "where soft-tissue thickening is needed — "
+                                                      "strongly considered, not automatically "
+                                                      "required"},
+        risk=("smoking_substance_use", "parafunction_assessment", "compliance_history"),
+        refiner=("standardised_photographic_set",),
+        note="Thin phenotype, a periapical lesion, a high smile line, facial plate thickness, "
+             "smoking, diabetes and the absence of a graft plan are all risk or decision "
+             "modifiers here — none is an automatic hard blocker."),
+
+    BONE_AUGMENTATION: DecisionProfile(
+        BONE_AUGMENTATION,
+        blocking=("bone_volume_assessment", "infection_status", "periodontal_status",
+                  "augmentation_objective") + _MEDICAL,
+        relevant=("soft_tissue_phenotype", "keratinized_tissue_width", "primary_closure_feasibility",
+                  "three_dimensional_position_plan"),
+        conditional={"diabetes_control": "if diabetes is reported",
+                     "bleeding_risk_assessment": "if anticoagulant therapy is reported"},
+        risk=("smoking_substance_use", "compliance_history"),
+        refiner=()),
+
+    IMPLANT_DEFINITIVE_CROWN: DecisionProfile(
+        IMPLANT_DEFINITIVE_CROWN,
+        blocking=("osseointegration_status", "three_dimensional_position_achieved",
+                  "peri_implant_tissue_health", "occlusal_scheme", "antagonist_status"),
+        relevant=("restorative_contour_plan", "soft_tissue_phenotype", "smile_line",
+                  "emergence_profile_plan"),
+        conditional={"parafunction_assessment": "as a risk modifier for material and design"},
+        risk=("parafunction_assessment", "compliance_history"),
+        refiner=("shade_with_reference_and_lighting", "standardised_photographic_set")),
 
     IMPLANT_PROVISIONALIZATION: DecisionProfile(
         IMPLANT_PROVISIONALIZATION,
