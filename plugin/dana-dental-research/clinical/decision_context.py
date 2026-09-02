@@ -436,11 +436,16 @@ PROFILES: Dict[str, DecisionProfile] = {
     # staged placement meant a contraindication to one read as a contraindication to the other.
     IMPLANT_PLACEMENT_IMMEDIATE: DecisionProfile(
         IMPLANT_PLACEMENT_IMMEDIATE,
+        # CLINICIAN REVIEW v1.2.1: apical_palatal_bone downgraded from HARD_BLOCKER. It is the
+        # anatomical substrate for primary stability, and primary_stability_feasibility — the
+        # judgement derived from it — is already a blocker here. Requiring both asked the same
+        # clinical question twice and would have blocked a decision that was in fact answerable.
+        # It informs implant position and angulation, which is decision-modifying.
         blocking=("facial_wall_integrity", "infection_status", "primary_stability_feasibility",
-                  "three_dimensional_position_plan", "apical_palatal_bone",
-                  "periodontal_status") + _MEDICAL,
-        relevant=("facial_bone_thickness", "soft_tissue_phenotype", "smile_line", "gap_anatomy",
-                  "papilla_support", "restorative_contour_plan", "bone_volume_assessment"),
+                  "three_dimensional_position_plan", "periodontal_status") + _MEDICAL,
+        relevant=("apical_palatal_bone", "facial_bone_thickness", "soft_tissue_phenotype",
+                  "smile_line", "gap_anatomy", "papilla_support", "restorative_contour_plan",
+                  "bone_volume_assessment"),
         conditional={"diabetes_control": "if diabetes is reported",
                      "connective_tissue_graft_plan": "where soft-tissue thickening is needed — "
                                                       "strongly considered, not automatically "
@@ -464,10 +469,19 @@ PROFILES: Dict[str, DecisionProfile] = {
 
     IMPLANT_DEFINITIVE_CROWN: DecisionProfile(
         IMPLANT_DEFINITIVE_CROWN,
+        # CLINICIAN REVIEW v1.2.1: occlusal_scheme and antagonist_status downgraded from
+        # HARD_BLOCKER. Both are already blockers of IMPLANT_FUNCTIONAL_LOADING, which is where
+        # occlusal load genuinely is the decision; and both are DECISION_MODIFIERs for
+        # CROWN_PREPARATION, so blocking on them here was inconsistent with the natural-tooth
+        # equivalent. Not knowing them yields a suboptimal occlusal design — a mechanical
+        # complication of the restoration — rather than a safety or biologic risk to the patient.
+        # Three blockers remain, and they are the three questions that decide whether an implant
+        # may be definitively restored at all: is it integrated, is it correctly positioned, and
+        # are the peri-implant tissues healthy.
         blocking=("osseointegration_status", "three_dimensional_position_achieved",
-                  "peri_implant_tissue_health", "occlusal_scheme", "antagonist_status"),
-        relevant=("restorative_contour_plan", "soft_tissue_phenotype", "smile_line",
-                  "emergence_profile_plan"),
+                  "peri_implant_tissue_health"),
+        relevant=("occlusal_scheme", "antagonist_status", "restorative_contour_plan",
+                  "soft_tissue_phenotype", "smile_line", "emergence_profile_plan"),
         conditional={"parafunction_assessment": "as a risk modifier for material and design"},
         risk=("parafunction_assessment", "compliance_history"),
         refiner=("shade_with_reference_and_lighting", "standardised_photographic_set")),

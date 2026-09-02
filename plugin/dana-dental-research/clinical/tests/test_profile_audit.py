@@ -49,7 +49,13 @@ BLOCKER_PROVENANCE = {
     "expectation_screening": PROTOCOL, "reversible_trial_outcome": PROTOCOL,
     "diagnosis_established": PROTOCOL, "etiology_of_wear": PROTOCOL,
     "etiology_of_excess_gingival_display": PROTOCOL, "driver_problem_identified": PROTOCOL,
-    "supracrestal_tissue_attachment": PROTOCOL, "three_dimensional_position_plan": PROTOCOL,
+    "supracrestal_tissue_attachment": PROTOCOL,
+    # CLINICIAN REVIEW v1.2.1: three_dimensional_position_plan relabelled PROTOCOL -> JUDGMENT.
+    # No protocol rule in this plugin states it; labelling it PROTOCOL borrowed an authority that
+    # cannot be cited, which is the failure the language governor exists to prevent.
+    "three_dimensional_position_plan": JUDG,
+    # augmentation_objective IS a protocol rule of this system: treatment follows diagnosis
+    # (clinical_reasoning.WRONG_ETIOLOGY_RULE). Cited, not assumed.
     "augmentation_objective": PROTOCOL,
     # Evidence — supported by the retrieved evidence base.
     "ferrule": EVID,
@@ -63,7 +69,8 @@ BLOCKER_PROVENANCE = {
     "keratinized_tissue_width": JUDG, "ovd_assessment_with_method": JUDG,
     "chief_complaint": JUDG, "etiology_of_discolouration": JUDG, "coronal_seal_status": JUDG,
     "gutta_percha_level": JUDG, "existing_restoration_quality": JUDG,
-    "parafunction_assessment": JUDG, "apical_palatal_bone": JUDG,
+    "parafunction_assessment": JUDG,
+    "peri_implant_tissue_health": SAFETY,
 }
 
 # Blockers that were downgraded by this audit and must NOT reappear as blockers.
@@ -73,6 +80,10 @@ DOWNGRADED = {
     (dc.VENEER_PREPARATION, "substrate_shade"),
     (dc.ELECTIVE_CROWN_REPLACEMENT, "underlying_core_assessment"),
     (dc.IMPLANT_PLACEMENT, "facial_wall_integrity"),
+    # Clinician review of the newly-added blockers:
+    (dc.IMPLANT_PLACEMENT_IMMEDIATE, "apical_palatal_bone"),
+    (dc.IMPLANT_DEFINITIVE_CROWN, "occlusal_scheme"),
+    (dc.IMPLANT_DEFINITIVE_CROWN, "antagonist_status"),
 }
 
 print("── §1/§2: profile inventory and blocker provenance ──")
@@ -318,6 +329,63 @@ check("E12 a plaque score is not a hard blocker anywhere",
       not any(dc.may_hard_block(d, "plaque_control_assessment") for d in dc.DECISIONS))
 check("E13 five appropriateness classes remain", len(lg.APPROPRIATENESS) == 5)
 check("E14 splints remain optional", dk.SPLINT["automatic_for_bruxism"] is False)
+
+# ── Clinician review of the newly-added blockers (v1.2.1 final) ──────────────────────────────
+print("\n── Clinician review: the 21 newly-added blocker entries ──")
+
+NEW_PROFILES = (dc.IMPLANT_PLACEMENT_IMMEDIATE, dc.BONE_AUGMENTATION, dc.IMPLANT_DEFINITIVE_CROWN)
+
+check("F01 apical_palatal_bone no longer blocks immediate placement",
+      not dc.may_hard_block(dc.IMPLANT_PLACEMENT_IMMEDIATE, "apical_palatal_bone"))
+check("F02 apical_palatal_bone is a decision modifier there",
+      dc.priority(dc.IMPLANT_PLACEMENT_IMMEDIATE, "apical_palatal_bone") == dc.DECISION_MODIFIER)
+check("F03 primary stability still blocks immediate placement — the question it duplicated",
+      dc.may_hard_block(dc.IMPLANT_PLACEMENT_IMMEDIATE, "primary_stability_feasibility"))
+check("F04 occlusal_scheme no longer blocks the definitive implant crown",
+      not dc.may_hard_block(dc.IMPLANT_DEFINITIVE_CROWN, "occlusal_scheme"))
+check("F05 antagonist_status no longer blocks the definitive implant crown",
+      not dc.may_hard_block(dc.IMPLANT_DEFINITIVE_CROWN, "antagonist_status"))
+check("F06 both still block functional loading, where load IS the decision",
+      dc.may_hard_block(dc.IMPLANT_FUNCTIONAL_LOADING, "occlusal_scheme")
+      and dc.may_hard_block(dc.IMPLANT_FUNCTIONAL_LOADING, "antagonist_status"))
+check("F07 the implant crown now matches the natural-tooth crown on these two variables",
+      dc.priority(dc.IMPLANT_DEFINITIVE_CROWN, "occlusal_scheme")
+      == dc.priority(dc.CROWN_PREPARATION, "occlusal_scheme")
+      and dc.priority(dc.IMPLANT_DEFINITIVE_CROWN, "antagonist_status")
+      == dc.priority(dc.CROWN_PREPARATION, "antagonist_status"))
+check("F08 the definitive implant crown retains exactly three blockers",
+      set(dc.profile(dc.IMPLANT_DEFINITIVE_CROWN).blocking)
+      == {"osseointegration_status", "three_dimensional_position_achieved",
+          "peri_implant_tissue_health"})
+check("F09 osseointegration still blocks — loading an unintegrated implant fails by definition",
+      dc.may_hard_block(dc.IMPLANT_DEFINITIVE_CROWN, "osseointegration_status"))
+check("F10 peri-implant tissue health still blocks, as active periodontal disease does for veneers",
+      dc.may_hard_block(dc.IMPLANT_DEFINITIVE_CROWN, "peri_implant_tissue_health"))
+check("F11 facial wall integrity still blocks immediate placement",
+      dc.may_hard_block(dc.IMPLANT_PLACEMENT_IMMEDIATE, "facial_wall_integrity"))
+check("F12 infection status still blocks immediate placement and augmentation",
+      dc.may_hard_block(dc.IMPLANT_PLACEMENT_IMMEDIATE, "infection_status")
+      and dc.may_hard_block(dc.BONE_AUGMENTATION, "infection_status"))
+check("F13 augmentation objective still blocks — treatment follows diagnosis",
+      dc.may_hard_block(dc.BONE_AUGMENTATION, "augmentation_objective"))
+check("F14 bone volume still blocks augmentation — the deficit defines the procedure",
+      dc.may_hard_block(dc.BONE_AUGMENTATION, "bone_volume_assessment"))
+check("F15 the medical screen still blocks both surgical profiles",
+      all(dc.may_hard_block(d, k) for d in (dc.IMPLANT_PLACEMENT_IMMEDIATE, dc.BONE_AUGMENTATION)
+          for k in ("medical_history", "medications", "allergies")))
+check("F16 no blocker in a new profile is unlabelled",
+      not [b for d in NEW_PROFILES for b in dc.profile(d).blocking
+           if b not in BLOCKER_PROVENANCE])
+check("F17 3D position plan is labelled clinical judgment, not a protocol that cannot be cited",
+      BLOCKER_PROVENANCE["three_dimensional_position_plan"] == JUDG)
+check("F18 augmentation objective is labelled protocol, and the protocol is citable",
+      BLOCKER_PROVENANCE["augmentation_objective"] == PROTOCOL
+      and "Treatment follows diagnosis" in cr.WRONG_ETIOLOGY_RULE)
+check("F19 the three new profiles now carry 18 blocker entries, not 21",
+      sum(len(dc.profile(d).blocking) for d in NEW_PROFILES) == 18,
+      str(sum(len(dc.profile(d).blocking) for d in NEW_PROFILES)))
+check("F20 no downgraded blocker anywhere has silently returned",
+      not [(d, b) for d, b in DOWNGRADED if dc.may_hard_block(d, b)])
 
 total = len(R)
 failed = [n for n, ok, _ in R if not ok]
