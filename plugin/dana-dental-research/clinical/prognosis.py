@@ -34,7 +34,22 @@ FAVORABLE = "FAVORABLE"
 GUARDED = "GUARDED"
 POOR = "POOR"
 UNDETERMINED = "UNDETERMINED"
-CATEGORIES = (FAVORABLE, GUARDED, POOR, UNDETERMINED)
+
+# v1.2.1 — two categories for the state the original four could not express: a determinant is
+# adverse, but it is one determinant, and the others that would settle the answer are not yet
+# known. Calling that GUARDED asserts a conclusion; calling it UNDETERMINED discards the finding.
+POTENTIALLY_COMPROMISED = "POTENTIALLY_COMPROMISED"
+HIGHER_RISK_THAN_COMPARATOR = "HIGHER_RISK_THAN_COMPARATOR"
+
+CATEGORIES = (FAVORABLE, GUARDED, POOR, UNDETERMINED, POTENTIALLY_COMPROMISED,
+              HIGHER_RISK_THAN_COMPARATOR)
+
+SINGLE_FACTOR_RULE = (
+    "No single determinant assigns a prognosis on its own. An isolated adverse finding — a short "
+    "ferrule, limited enamel, a thin facial plate — is recorded as POTENTIALLY_COMPROMISED while "
+    "the other determinants that would settle the axis remain unknown. It is not promoted to "
+    "GUARDED, and it is not discarded."
+)
 
 NO_NUMBERS_RULE = (
     "Prognosis is categorical only. No percentage, survival figure or score is produced — a number "
@@ -113,7 +128,20 @@ ADVERSE_FINDINGS = {
     "poor_compliance": (GUARDED, (AXIS_PERIODONTAL, AXIS_PROSTHETIC)),
     "unresolved_periapical_pathology": (GUARDED, (AXIS_TOOTH, AXIS_RESTORATIVE)),
 }
+# v1.2.1 additions — anatomic and substrate findings that are real risk information but are
+# routinely allowed to decide an axis by themselves.
+ADVERSE_FINDINGS["limited_enamel_substrate"] = (GUARDED, (AXIS_RESTORATIVE,))
+ADVERSE_FINDINGS["thin_facial_bone"] = (GUARDED, (AXIS_PROSTHETIC,))
+
 ADVERSE_FINDING_WEIGHT = {k: v[0] for k, v in ADVERSE_FINDINGS.items()}
+
+# Findings that are genuine risk information but must not, alone, assign a category. Each is one
+# determinant among several: a 1 mm ferrule matters, and it does not by itself define a
+# restorative prognosis when crown-root ratio, remaining structure and occlusal load are unknown.
+SINGLE_FACTOR_ONLY = (
+    "inadequate_ferrule", "limited_enamel_substrate", "thin_facial_bone",
+    "unfavourable_crown_root_ratio",
+)
 
 CONFIDENCE_HIGH = "High"
 CONFIDENCE_MODERATE = "Moderate"
@@ -143,8 +171,32 @@ def _confidence(missing_critical, missing_any, adverse):
     return CONFIDENCE_MODERATE if adverse else CONFIDENCE_HIGH
 
 
+def _determinant_relevant(decision, key, conditions_met=()):
+    """
+    A determinant is required only where the decision could turn on it.
+
+    NOT_RELEVANT           -> never required.
+    CONDITIONALLY_RELEVANT -> required only when its named condition actually holds. This is the
+                              distinction that matters: ferrule is conditionally relevant to a
+                              veneer preparation (it matters if the tooth is endodontically
+                              treated), and requiring it unconditionally put every veneer case
+                              back to UNDETERMINED — the behaviour the fix was meant to remove.
+    RELEVANT               -> required.
+    """
+    try:
+        import decision_context as dc
+        state = dc.relevance(decision, key)
+        if state == dc.NOT_RELEVANT:
+            return False
+        if state == dc.CONDITIONALLY_RELEVANT:
+            return key in set(conditions_met or ())
+        return True
+    except Exception:
+        return True   # unknown decision: fall back to requiring it, never to skipping it
+
+
 def assess_axis(case: CaseState, axis: str, adverse_findings=None, supporting_findings=None,
-                tooth=None):
+                tooth=None, decision=None, conditions_met=None):
     """
     Assess one axis. `adverse_findings` are keys from ADVERSE_FINDING_WEIGHT that the clinician has
     recorded as present. Nothing is inferred from the case record beyond whether a determinant is
@@ -162,10 +214,17 @@ def assess_axis(case: CaseState, axis: str, adverse_findings=None, supporting_fi
     supporting = list(supporting_findings or [])
 
     spec = DETERMINANTS[axis]
-    missing_critical, missing_other = [], []
+    missing_critical, missing_other, not_relevant = [], [], []
     for key, critical in spec.items():
-        if not case.known(key):
-            (missing_critical if critical else missing_other).append(key)
+        if case.known(key):
+            continue
+        # v1.2.1 — a determinant that cannot change THIS decision is not a gap for it. Without
+        # this, ferrule made every restorative axis UNDETERMINED in cases where no post, core or
+        # crown was ever in question.
+        if decision is not None and not _determinant_relevant(decision, key, conditions_met):
+            not_relevant.append(key)
+            continue
+        (missing_critical if critical else missing_other).append(key)
 
     # Rule 1 — a missing critical determinant ends the assessment. It is not averaged away.
     if missing_critical:
@@ -181,9 +240,19 @@ def assess_axis(case: CaseState, axis: str, adverse_findings=None, supporting_fi
     # Rule 2 — the worst adverse finding sets the ceiling. Conservative conflict resolution:
     # good news never offsets bad news on the same axis.
     category = FAVORABLE
+    single_factor_note = None
     if adverse:
         weights = [ADVERSE_FINDING_WEIGHT[a] for a in adverse]
         category = POOR if POOR in weights else GUARDED
+        # v1.2.1 single-factor rule. One isolated finding from SINGLE_FACTOR_ONLY, with other
+        # determinants of this axis still unknown, does not assign GUARDED on its own.
+        if (category == GUARDED and len(adverse) == 1 and adverse[0] in SINGLE_FACTOR_ONLY
+                and missing_other):
+            category = POTENTIALLY_COMPROMISED
+            single_factor_note = (
+                f"{adverse[0]} is present, and is one determinant among several. "
+                f"{', '.join(missing_other)} remain unestablished, so the axis is recorded as "
+                f"POTENTIALLY_COMPROMISED rather than assigned GUARDED on a single factor.")
 
     # Rule 3 — an [Inferred] critical determinant caps the axis at GUARDED. An inference is not a
     # finding (CORE §5), and a favourable prognosis resting on one overstates what is known.
@@ -202,8 +271,12 @@ def assess_axis(case: CaseState, axis: str, adverse_findings=None, supporting_fi
         basis_bits.append(f"supporting: {len(supporting)} finding(s)")
     if missing_other:
         basis_bits.append(f"non-critical gaps: {', '.join(missing_other)}")
+    if not_relevant:
+        basis_bits.append(f"not relevant to this decision: {', '.join(not_relevant)}")
     basis = ("All critical determinants established. "
              + ("; ".join(basis_bits) if basis_bits else "no adverse findings recorded."))
+    if single_factor_note:
+        basis = single_factor_note + " " + basis
 
     return AxisPrognosis(axis=axis, category=category, basis=basis,
                          supporting_findings=supporting, adverse_findings=adverse,
@@ -211,22 +284,55 @@ def assess_axis(case: CaseState, axis: str, adverse_findings=None, supporting_fi
                          confidence=_confidence(missing_critical, missing_other, adverse))
 
 
+def relevant_axes(decision):
+    """Which prognosis axes bear on a decision. Assessing all five for a whitening question
+    produces four axes of noise and one UNDETERMINED that blocks the answer."""
+    mapping = {
+        "external_whitening": (AXIS_TOOTH, AXIS_PERIODONTAL),
+        "internal_bleaching": (AXIS_TOOTH, AXIS_RESTORATIVE),
+        "tmd_assessment": (AXIS_FUNCTIONAL,),
+        "periodontal_diagnosis": (AXIS_PERIODONTAL,),
+        "periodontal_therapy_nonsurgical": (AXIS_PERIODONTAL,),
+        "orthodontic_screening": (AXIS_PERIODONTAL,),
+        "veneer_preparation": (AXIS_TOOTH, AXIS_PERIODONTAL, AXIS_RESTORATIVE, AXIS_FUNCTIONAL),
+        "post_core_crown": AXES,
+        "crown_preparation": AXES,
+        "restorability_assessment": (AXIS_TOOTH, AXIS_RESTORATIVE, AXIS_PERIODONTAL),
+        "diagnostic_discussion": (),
+    }
+    return mapping.get(decision, AXES)
+
+
 def assess(case: CaseState, adverse_findings=None, supporting_findings=None, axes=None,
-           tooth=None):
+           tooth=None, decision=None, conditions_met=None):
     """
     Assess all five axes and produce the overall result.
 
     Overall category is the WORST axis, never an average. A tooth that is periodontally favourable
     and restoratively poor is not "guarded overall" — it is poor, and the reason is restorative.
     """
-    axes = axes or AXES
-    results = {a: assess_axis(case, a, adverse_findings, supporting_findings, tooth) for a in axes}
+    if axes is None:
+        axes = relevant_axes(decision) if decision else AXES
+    results = {a: assess_axis(case, a, adverse_findings, supporting_findings, tooth, decision,
+                              conditions_met) for a in axes}
+    if not results:
+        return {
+            "case_ref": case.case_ref, "tooth": tooth, "overall": None, "driven_by": [],
+            "axes": {}, "missing_determinants": [], "blocks_irreversible_planning": False,
+            "block_reason": None, "scale_note": SCALE_NOTE, "no_numbers_rule": NO_NUMBERS_RULE,
+            "note": (f"No prognosis axis bears on decision {decision!r}. A prognosis is not "
+                     "produced for a decision it cannot inform."),
+            "single_factor_rule": SINGLE_FACTOR_RULE,
+        }
 
-    order = {FAVORABLE: 0, GUARDED: 1, POOR: 2, UNDETERMINED: 3}
+    order = {FAVORABLE: 0, HIGHER_RISK_THAN_COMPARATOR: 1, POTENTIALLY_COMPROMISED: 2,
+             GUARDED: 3, POOR: 4, UNDETERMINED: 5}
     worst = max((r.category for r in results.values()), key=lambda c: order[c])
     driving = [a for a, r in results.items() if r.category == worst]
 
     all_missing = sorted({m for r in results.values() for m in r.missing_determinants})
+    # POTENTIALLY_COMPROMISED is a risk statement, not an absence of one. It informs consent and
+    # design; it does not block planning the way an unassessable axis does.
     blocking = worst == UNDETERMINED
 
     return {
@@ -244,6 +350,8 @@ def assess(case: CaseState, adverse_findings=None, supporting_findings=None, axe
         "scale_note": SCALE_NOTE,
         "no_numbers_rule": NO_NUMBERS_RULE,
         "overall_rule": "Overall prognosis is the worst axis, never an average of the axes.",
+        "single_factor_rule": SINGLE_FACTOR_RULE,
+        "axes_assessed_for_decision": decision,
     }
 
 
@@ -265,7 +373,8 @@ class PrognosisOrderError(RuntimeError):
 
 
 def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = None,
-                    adverse_findings=None, supporting_findings=None, tooth=None):
+                    adverse_findings=None, supporting_findings=None, tooth=None,
+                    decision=None, conditions_met=None):
     """
     Enforced-order entry point. Use this rather than `assess()` in the output path.
 
@@ -278,8 +387,15 @@ def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = No
             f"Case discipline {case.discipline!r} is out of scope; no prognosis is produced. "
             + ORDER_RULE)
 
-    suff = case.sufficiency()
-    if suff["verdict"] in (INSUFFICIENT, OUT_OF_SCOPE):
+    # AUDIT v1.2.1 §10 — sufficiency is evaluated against the decision being made. Without a
+    # decision this falls back to the discipline-wide verdict, which is the over-blocking
+    # behaviour v1.2.1 exists to remove; the fallback is retained only for backward compatibility
+    # and is flagged in the result so no clinical workflow can depend on it unnoticed.
+    suff = case.sufficiency(decision=decision, conditions_met=conditions_met)
+    blocking_verdicts = (INSUFFICIENT, OUT_OF_SCOPE) if decision is None else (
+        OUT_OF_SCOPE, "INSUFFICIENT", "INSUFFICIENT_FOR_IRREVERSIBLE_TREATMENT",
+        "INSUFFICIENT_FOR_FINAL_PROSTHETIC_DESIGN", "INSUFFICIENT_FOR_SURGICAL_DECISION")
+    if suff["verdict"] in blocking_verdicts:
         return {
             "overall": UNDETERMINED,
             "blocks_irreversible_planning": True,
@@ -303,8 +419,11 @@ def assess_in_order(case: CaseState, sweep_result: Optional[Dict[str, Any]] = No
             "order_rule": ORDER_RULE, "no_numbers_rule": NO_NUMBERS_RULE,
         }
 
-    result = assess(case, adverse_findings, supporting_findings, tooth=tooth)
+    result = assess(case, adverse_findings, supporting_findings, tooth=tooth, decision=decision,
+                    conditions_met=conditions_met)
     result["order_rule"] = ORDER_RULE
+    result["decision_profile"] = decision
+    result["decision_profile_missing"] = decision is None
     return result
 
 

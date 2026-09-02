@@ -4,6 +4,38 @@ description: Validate consequential clinical and scientific outputs before relea
 ---
 # Quality Control
 
+## Output language (v1.2.1) — CLINICAL MODE is the default
+
+`references/clinical-writing-layer.md`. The engine's internal labels (HARD_BLOCKER,
+INSUFFICIENT_FOR_IRREVERSIBLE_TREATMENT, POTENTIALLY_COMPROMISED, decision-profile names,
+suppressed-field lists) are **never printed** in an ordinary clinician-facing answer — they are
+translated into clinical prose. Lead with what you think, why, and what should happen next.
+Expose internal state only when the clinician explicitly asks for audit, technical, governance,
+developer or debug output.
+
+
+## Clinical decision context (v1.2.1) — read before answering any case
+
+`references/clinical-decision-context.md` governs how this skill treats missing data, wording and
+prognosis. In short:
+
+- **A missing data point may hard-block only if it can materially change THIS decision.** Ferrule,
+  pulpal status and restorability are not universal gates — where they are NOT_RELEVANT to the
+  decision being made, they are suppressed from the output entirely.
+- **Sufficiency is reported per decision**, not per case: a case is routinely sufficient for the
+  conservative option and insufficient for the irreversible one, and both halves are stated.
+- **Missing data is ranked** HARD_BLOCKER › DECISION_MODIFIER › RISK_MODIFIER › PLANNING_REFINER ›
+  DOCUMENTATION_GAP. A missing photograph is not listed beside active periodontal disease.
+- **Absolute words** (mandatory, required, must, contraindicated, never, always) need one of five
+  named bases. Otherwise use calibrated language.
+- **A risk factor is not a contraindication.** **A diagnostic tool is not a diagnosis.**
+- **No single determinant assigns a prognosis.** **Elective is not inappropriate.**
+- **Lead with the decision**: CURRENT DECISION → WHY → KEY DISCRIMINATOR → NEXT STEP → details.
+
+Executable: `clinical/decision_context.py`, `clinical/language_governor.py`,
+`clinical/clinical_reasoning.py`, `clinical/domain_knowledge.py`.
+
+
 Before finalising any consequential output, check every section below. If any material item fails,
 do not release the response unchanged — correct it or explicitly state what cannot be concluded.
 
@@ -312,6 +344,37 @@ names. Executable layer: `evidence/`.
 - a trial registry record used as evidence of efficacy;
 - laboratory or computational evidence used to claim a clinical outcome;
 - conflicting evidence averaged, or the dissenting source omitted.
+
+## Clinical reasoning checks (v1.2.1)
+
+Full rules: `references/clinical-decision-context.md`.
+
+1. **Relevance** — is any reported gap NOT_RELEVANT to the decision being made? Does ferrule,
+   pulpal status or restorability appear in a case where it cannot change the answer?
+2. **Sufficiency scope** — is one global INSUFFICIENT applied where the data are sufficient for
+   some decisions? Is the verdict stated per decision?
+3. **Priority** — is missing data ranked, or listed flat? Is a planning refiner framed as a
+   safety concern?
+4. **Language** — does any absolute word appear without one of the five named bases? Is an
+   evidence-supported association written as a mandatory protocol rule?
+5. **Risk vs contraindication** — is a risk modifier written as a prohibition?
+6. **Tool vs diagnosis** — is any tool called decisive that is not? Is a negative CBCT treated as
+   excluding a vertical root fracture? Is T-Scan presented as proof of pain causation?
+7. **Prognosis** — is a category assigned on one isolated determinant?
+8. **Elective** — is a consented elective request classified as prohibited?
+9. **Etiology** — is irreversible treatment proposed before the cause is established?
+10. **Driver problem** — is a tooth-by-tooth plan offered without naming what drives the case?
+11. **Tier** — has the irreversibility tier risen only because more teeth are involved?
+12. **Proportionality** — does an incomplete sweep dominate a stable elective answer?
+13. **Answer order** — does the output lead with the current decision?
+14. **Numbers** — are outcome figures compared across studies that did not compare them? Is a
+    zero-event or 100% figure presented as predicting this patient's outcome?
+15. **Basis separation** — is every claim labelled PROTOCOL RULE / EVIDENCE-SUPPORTED /
+    CLINICAL JUDGMENT / PATIENT PREFERENCE / UNKNOWN?
+
+**CRITICAL FAILURE — release-blocking:** an irrelevant hard blocker preventing a legitimate
+conservative answer; a risk factor presented as a contraindication; a diagnostic tool presented as
+decisive when it is not; irreversible treatment proposed before the etiology is established.
 
 ## Author identity & citation check (v0.9.1) — global, every output
 

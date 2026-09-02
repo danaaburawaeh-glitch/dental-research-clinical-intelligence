@@ -214,8 +214,18 @@ check("T10g a correctly sequenced plan on a favourable prognosis passes",
       plan["blocked"] is False, str(plan["blocking"])[:120])
 
 # ── Invariants ──
-check("INV1 exactly four prognosis categories", pg.CATEGORIES ==
-      (pg.FAVORABLE, pg.GUARDED, pg.POOR, pg.UNDETERMINED))
+# v1.2.1: the vocabulary is six, not four. POTENTIALLY_COMPROMISED and
+# HIGHER_RISK_THAN_COMPARATOR were added so an isolated adverse determinant is neither promoted to
+# GUARDED nor discarded. The invariant this check exists to protect is that the vocabulary is
+# CLOSED and contains no numeric category — that is asserted here and in INV2.
+check("INV1 prognosis vocabulary is closed and complete", pg.CATEGORIES ==
+      (pg.FAVORABLE, pg.GUARDED, pg.POOR, pg.UNDETERMINED, pg.POTENTIALLY_COMPROMISED,
+       pg.HIGHER_RISK_THAN_COMPARATOR))
+check("INV1b the four original categories are unchanged",
+      (pg.FAVORABLE, pg.GUARDED, pg.POOR, pg.UNDETERMINED)
+      == ("FAVORABLE", "GUARDED", "POOR", "UNDETERMINED"))
+check("INV1c no category is numeric",
+      not any(any(ch.isdigit() for ch in c) for c in pg.CATEGORIES))
 check("INV2 no percentage is ever emitted",
       "%" not in str(pg.assess_in_order(full_case(), clear_sweep(),
                                         adverse_findings=["furcation_involvement"])))

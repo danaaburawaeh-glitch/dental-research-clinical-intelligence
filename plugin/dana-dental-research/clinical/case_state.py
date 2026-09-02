@@ -235,11 +235,20 @@ class CaseState:
         out.sort(key=lambda x: -x["rank"])
         return out
 
-    def sufficiency(self, decision_value_map=None):
+    def sufficiency(self, decision_value_map=None, decision=None, conditions_met=None):
         """
-        M1 §4 verdict, with the reason. Never reports SUFFICIENT while real gaps exist — the
-        contradiction check reused from dana-clinical-core's handoff rule.
+        Sufficiency verdict, with the reason.
+
+        `decision` (v1.2.1) scopes the verdict to the decision actually being made. Without it the
+        legacy discipline-wide behaviour is preserved unchanged, so existing callers are
+        unaffected — but a caller that knows which decision it is answering gets a verdict about
+        that decision instead of about the whole minimum dataset.
+
+        This is the fix for the case where a narrow, conservative question was answered
+        "INSUFFICIENT" because prosthodontic fields unrelated to it were absent.
         """
+        if decision is not None:
+            return self.sufficiency_for(decision, conditions_met)
         if not self.in_scope():
             return {
                 "verdict": OUT_OF_SCOPE,
@@ -267,6 +276,45 @@ class CaseState:
             reason = f"{len(missing)} item(s) of the minimum dataset are missing."
         assert not (verdict == SUFFICIENT and missing), "SUFFICIENT with outstanding gaps"
         return {"verdict": verdict, "reason": reason, "missing": missing}
+
+    # ------------------------------------------------------------------
+    def sufficiency_for(self, decision, conditions_met=None):
+        """
+        Decision-scoped sufficiency (v1.2.1). Delegates to decision_context, which holds the
+        relevance model. Returns the same shape as `sufficiency()` plus the decision-specific
+        fields, so callers can read `verdict` either way.
+        """
+        import decision_context as dc
+        if not self.in_scope():
+            return {"verdict": OUT_OF_SCOPE, "reason": SCOPE_NOTE, "missing": [],
+                    "decision": decision}
+        result = dc.assess_sufficiency(decision, self.known, conditions_met)
+        result["missing"] = [
+            {"item": item, "priority": prio, "rank": dc.PRIORITY_RANK[prio],
+             "relevance": dc.relevance(decision, item),
+             "condition": dc.condition_for(decision, item),
+             "why_it_matters": f"{prio} for {decision}."}
+            for prio, items in result["by_priority"].items() for item in items]
+        result["missing"].sort(key=lambda m: -m["rank"])
+        return result
+
+    def sufficiency_across(self, decisions, conditions_met=None):
+        """What this case can and cannot support right now, decision by decision."""
+        import decision_context as dc
+        return dc.sufficiency_across(decisions, self.known, conditions_met)
+
+    def relevant_missing(self, decision):
+        """Missing items that are RELEVANT to this decision. NOT_RELEVANT items are suppressed
+        entirely — they are not gaps for a decision they cannot change (issue 45)."""
+        import decision_context as dc
+        return [i for i in dc.required_items(decision)
+                if not self.known(i) and dc.relevance(decision, i) != dc.NOT_RELEVANT]
+
+    def suppressed_for(self, decision):
+        """Minimum-dataset items deliberately NOT reported for this decision, with the reason.
+        Kept visible for audit: suppression must be inspectable, not silent."""
+        import decision_context as dc
+        return [i for i in self.required_dataset() if dc.relevance(decision, i) == dc.NOT_RELEVANT]
 
     # ------------------------------------------------------------------
     def prognosis_undetermined_teeth(self):
@@ -297,8 +345,15 @@ class CaseState:
         }
 
 
-def header_line(case: CaseState, mode: str):
-    """M1 universal rule: every template opens with this line."""
-    s = case.sufficiency()
-    return (f"{mode} · {case.case_ref} · Notation: {case.notation or UNKNOWN} · "
+def header_line(case: CaseState, mode: str, decision=None):
+    """
+    M1 universal rule: every template opens with this line.
+
+    With a decision supplied the sufficiency reported is the decision's, not the discipline's —
+    the difference between "this case is INSUFFICIENT" and "this case is sufficient to discuss
+    the conservative option and not to cut the preparation".
+    """
+    s = case.sufficiency(decision=decision) if decision else case.sufficiency()
+    line = (f"{mode} · {case.case_ref} · Notation: {case.notation or UNKNOWN} · "
             f"Data sufficiency: {s['verdict']}")
+    return line + (f" (for: {decision})" if decision else "")

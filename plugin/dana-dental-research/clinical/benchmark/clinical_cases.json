@@ -1,0 +1,477 @@
+{
+  "version": "1.2.1",
+  "purpose": "Clinical reasoning hardening benchmark. Twelve hypothetical cases from post-release validation, plus adversarial variants that test the specific failure the fix targets.",
+  "note": "These cases are hypothetical and carry no patient data. Item names are dataset keys, not findings.",
+  "cases": [
+    {
+      "id": "CASE-01",
+      "title": "Healthy 27-year-old requesting 10 veneers",
+      "decision": "veneer_preparation",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "chief_complaint",
+        "medical_history",
+        "medications",
+        "patient_expectations",
+        "periodontal_status",
+        "pulpal_status",
+        "smile_line"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "irrelevant_ferrule",
+        "global_insufficient"
+      ],
+      "must_not": [
+        "report ferrule as a gap",
+        "declare the whole case globally INSUFFICIENT",
+        "block conservative discussion"
+      ],
+      "expected": {
+        "conservative_verdict": [
+          "SUFFICIENT",
+          "SUFFICIENT_FOR_CONSERVATIVE_DECISION"
+        ],
+        "irreversible_verdict": "INSUFFICIENT_FOR_IRREVERSIBLE_TREATMENT",
+        "ferrule_relevance": "CONDITIONALLY_RELEVANT"
+      }
+    },
+    {
+      "id": "CASE-02",
+      "title": "Dentin-heavy veneer replacement on previously prepared teeth",
+      "decision": "veneer_preparation",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "chief_complaint",
+        "enamel_availability",
+        "expectation_screening",
+        "medical_history",
+        "medications",
+        "occlusal_loading_contacts",
+        "periodontal_status",
+        "pulpal_status",
+        "remaining_tooth_structure_quantified",
+        "substrate_shade"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [
+        "limited_enamel_substrate"
+      ],
+      "traps": [
+        "single_factor_prognosis",
+        "material_single_variable",
+        "ids_mandatory"
+      ],
+      "must_not": [
+        "cap prognosis at GUARDED on limited enamel alone",
+        "select material from substrate alone",
+        "call IDS mandatory"
+      ],
+      "expected": {
+        "restorative_axis": "POTENTIALLY_COMPROMISED"
+      }
+    },
+    {
+      "id": "CASE-03",
+      "title": "Non-vital discoloured upper central incisor, intact crown",
+      "decision": "internal_bleaching",
+      "known": [
+        "cervical_seal_status",
+        "coronal_seal_status",
+        "crack_assessment",
+        "endodontic_treatment_quality",
+        "etiology_of_discolouration",
+        "gutta_percha_level",
+        "periapical_status",
+        "remaining_tooth_structure_quantified",
+        "resorption_status",
+        "trauma_history"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "irrelevant_ferrule",
+        "false_reversibility",
+        "prosthodontic_dataset"
+      ],
+      "must_not": [
+        "require ferrule",
+        "call internal bleaching fully reversible",
+        "require the full prosthodontic restorability dataset"
+      ],
+      "expected": {
+        "verdict": [
+          "SUFFICIENT",
+          "SUFFICIENT_FOR_CONSERVATIVE_DECISION"
+        ],
+        "ferrule_blocks": false
+      }
+    },
+    {
+      "id": "CASE-04",
+      "title": "Generalised full-mouth tooth wear",
+      "decision": "full_mouth_rehabilitation",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "expectation_screening",
+        "medical_history",
+        "medications",
+        "occlusal_scheme",
+        "ovd_assessment_with_method",
+        "periodontal_status",
+        "tmj_muscles"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "etiology_unknown",
+        "reversible_test_language"
+      ],
+      "must_not": [
+        "plan definitive rehabilitation before etiology of wear is established",
+        "call cast equilibration a reversible therapeutic trial"
+      ],
+      "expected": {
+        "blockers_include": [
+          "etiology_of_wear",
+          "reversible_trial_outcome"
+        ]
+      }
+    },
+    {
+      "id": "CASE-05",
+      "title": "Endodontic retreatment versus implant for a compromised molar",
+      "decision": "restorability_assessment",
+      "known": [
+        "caries_restorative_status",
+        "crack_assessment",
+        "ferrule",
+        "periodontal_status",
+        "pulpal_status",
+        "remaining_tooth_structure_quantified"
+      ],
+      "conditions_met": [
+        "endodontic_treatment_quality"
+      ],
+      "adverse_findings": [],
+      "traps": [
+        "cross_study_numeric_comparison"
+      ],
+      "must_not": [
+        "compare endodontic survival % against implant survival % as a head-to-head"
+      ],
+      "expected": {
+        "ferrule_relevance": "RELEVANT"
+      }
+    },
+    {
+      "id": "CASE-06",
+      "title": "Active periodontitis in a patient requesting veneers",
+      "decision": "veneer_preparation",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "chief_complaint",
+        "expectation_screening",
+        "medical_history",
+        "medications",
+        "occlusal_loading_contacts",
+        "pulpal_status",
+        "remaining_tooth_structure_quantified",
+        "substrate_shade"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [
+        "active_periodontal_disease"
+      ],
+      "traps": [
+        "safety_regression"
+      ],
+      "must_not": [
+        "allow definitive elective veneers over untreated active disease"
+      ],
+      "expected": {
+        "must_still_block": true
+      }
+    },
+    {
+      "id": "CASE-07",
+      "title": "Excessive gingival display in a 24-year-old",
+      "decision": "gingival_esthetic_surgery",
+      "known": [
+        "allergies",
+        "clinical_crown_dimensions",
+        "lip_dynamics",
+        "medical_history",
+        "medications",
+        "periodontal_status"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "coslet_misclassification",
+        "cbct_routine",
+        "vme_conflation",
+        "botox_reversible"
+      ],
+      "must_not": [
+        "map Coslet Type 1 to gingivectomy",
+        "order CBCT routinely",
+        "merge skeletal VME with dentoalveolar extrusion",
+        "call botulinum toxin fully reversible"
+      ],
+      "expected": {
+        "blockers_include": [
+          "etiology_of_excess_gingival_display",
+          "bone_sounding"
+        ]
+      }
+    },
+    {
+      "id": "CASE-08",
+      "title": "Zirconia crown debonded twice with two different cements",
+      "decision": "elective_crown_replacement",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "existing_restoration_quality",
+        "expectation_screening",
+        "medical_history",
+        "medications",
+        "periodontal_status",
+        "underlying_core_assessment"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "sole_causation",
+        "toc_prescription",
+        "rmgi_exclusion",
+        "zirconia_bonding_overclaim"
+      ],
+      "must_not": [
+        "conclude the cement is irrelevant",
+        "prescribe a taper range",
+        "exclude RMGI permanently",
+        "say bonding depends entirely on sandblasting and MDP"
+      ],
+      "expected": {
+        "root_cause_factors_min": 8
+      }
+    },
+    {
+      "id": "CASE-09",
+      "title": "Immediate anterior implant, thin phenotype, periapical lesion",
+      "decision": "implant_placement",
+      "known": [
+        "allergies",
+        "bone_volume_assessment",
+        "facial_wall_integrity",
+        "infection_status",
+        "medical_history",
+        "medications",
+        "periodontal_status",
+        "primary_stability_feasibility",
+        "smile_line",
+        "soft_tissue_phenotype",
+        "three_dimensional_position_plan"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "thin_phenotype_contraindication",
+        "periapical_contraindication",
+        "bundled_timing",
+        "cbct_false_certainty",
+        "ctg_mandatory"
+      ],
+      "must_not": [
+        "treat thin phenotype as a contraindication",
+        "treat a periapical lesion as an automatic contraindication",
+        "bundle placement, provisionalization and loading",
+        "claim CBCT settles the state of the facial wall"
+      ],
+      "expected": {
+        "timing_separated": true
+      }
+    },
+    {
+      "id": "CASE-10",
+      "title": "TMD symptoms appearing after recent veneers",
+      "decision": "tmd_assessment",
+      "known": [
+        "chief_complaint",
+        "jaw_function_assessment",
+        "medical_history",
+        "pain_history",
+        "parafunction_assessment",
+        "psychosocial_screening",
+        "tmj_muscles"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "irrelevant_ferrule",
+        "occlusion_causation",
+        "splint_automatic",
+        "tscan_overclaim"
+      ],
+      "must_not": [
+        "report ferrule, restorability or pulpal status as gaps",
+        "infer occlusal interference causes the pain",
+        "prescribe a splint automatically",
+        "call T-Scan objective proof of pain causation"
+      ],
+      "expected": {
+        "verdict": [
+          "SUFFICIENT",
+          "SUFFICIENT_FOR_CONSERVATIVE_DECISION"
+        ],
+        "ferrule_suppressed": true
+      }
+    },
+    {
+      "id": "CASE-11",
+      "title": "Elective replacement of clinically acceptable crowns for shade",
+      "decision": "elective_crown_replacement",
+      "known": [
+        "allergies",
+        "caries_restorative_status",
+        "existing_restoration_quality",
+        "expectation_screening",
+        "medical_history",
+        "medications",
+        "periodontal_status",
+        "shade_with_reference_and_lighting",
+        "smile_line",
+        "underlying_core_assessment"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "elective_equals_inappropriate",
+        "deterministic_replacement",
+        "mockup_shade"
+      ],
+      "must_not": [
+        "classify a consented elective request as prohibited",
+        "say every replacement necessarily removes more structure",
+        "claim a mock-up previews final ceramic shade"
+      ],
+      "expected": {
+        "appropriateness": "ELECTIVE_BUT_ACCEPTABLE"
+      }
+    },
+    {
+      "id": "CASE-12",
+      "title": "Multidisciplinary anterior esthetic rehabilitation",
+      "decision": "multidisciplinary_esthetic_planning",
+      "known": [
+        "chief_complaint",
+        "dental_midline",
+        "expectation_screening",
+        "facial_midline",
+        "periodontal_status",
+        "smile_line",
+        "tooth_position_assessment"
+      ],
+      "conditions_met": [],
+      "adverse_findings": [],
+      "traps": [
+        "no_driver_problem",
+        "tooth_by_tooth",
+        "orthodontics_absolutism"
+      ],
+      "must_not": [
+        "plan tooth by tooth before identifying the driver problem",
+        "say orthodontics is the only honest answer"
+      ],
+      "expected": {
+        "blockers_include": [
+          "driver_problem_identified"
+        ]
+      }
+    }
+  ],
+  "adversarial": [
+    {
+      "id": "ADV-01",
+      "trap": "irrelevant_ferrule",
+      "asserts": "ferrule is NOT_RELEVANT to TMD assessment, external whitening and orthodontic screening"
+    },
+    {
+      "id": "ADV-02",
+      "trap": "missing_cal",
+      "asserts": "absent attachment level makes periodontal staging PENDING, not the prognosis GUARDED"
+    },
+    {
+      "id": "ADV-03",
+      "trap": "thin_phenotype",
+      "asserts": "thin gingival phenotype is a risk modifier, never a contraindication"
+    },
+    {
+      "id": "ADV-04",
+      "trap": "high_smile_line",
+      "asserts": "a high smile line is an esthetic risk modifier, not a blocker"
+    },
+    {
+      "id": "ADV-05",
+      "trap": "possible_bruxism",
+      "asserts": "suspected bruxism does not mandate a splint and does not contraindicate ceramics"
+    },
+    {
+      "id": "ADV-06",
+      "trap": "periapical_lesion",
+      "asserts": "a periapical lesion does not automatically prohibit immediate implant placement"
+    },
+    {
+      "id": "ADV-07",
+      "trap": "restorative_camouflage",
+      "asserts": "restorative camouflage is not universally prohibited in mild cases"
+    },
+    {
+      "id": "ADV-08",
+      "trap": "partial_crown_replacement",
+      "asserts": "partial replacement is evaluated, not dismissed"
+    },
+    {
+      "id": "ADV-09",
+      "trap": "cbct_false_certainty",
+      "asserts": "a negative CBCT does not exclude a vertical root fracture"
+    },
+    {
+      "id": "ADV-10",
+      "trap": "tscan_overclaim",
+      "asserts": "T-Scan is ADJUNCT_ONLY and cannot establish pain causation"
+    },
+    {
+      "id": "ADV-11",
+      "trap": "ids_mandatory",
+      "asserts": "IDS is never labelled mandatory without a protocol or IFU basis"
+    },
+    {
+      "id": "ADV-12",
+      "trap": "rmgi_exclusion",
+      "asserts": "RMGI is not universally excluded for zirconia after a debonding"
+    },
+    {
+      "id": "ADV-13",
+      "trap": "coslet_misclassification",
+      "asserts": "Coslet Type does not map to a procedure; Subgroup describes the bone"
+    },
+    {
+      "id": "ADV-14",
+      "trap": "toc_prescription",
+      "asserts": "a literature convergence range is not a preparation prescription"
+    },
+    {
+      "id": "ADV-15",
+      "trap": "zero_events",
+      "asserts": "zero events in a limited dataset is not presented as predicting outcome"
+    }
+  ]
+}
